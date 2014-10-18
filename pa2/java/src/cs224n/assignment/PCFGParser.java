@@ -2,7 +2,7 @@ package cs224n.assignment;
 
 import cs224n.ling.Tree;
 import java.util.*;
-import cs224n.assignment.TripletISS;
+import cs224n.assignment.*;
 
 /**
  * The CKY PCFG Parser you will implement.
@@ -25,23 +25,27 @@ public class PCFGParser implements Parser {
     public Tree<String> getBestParse(List<String> sentence) {
         Map<String, Integer> aToInd = new HashMap<String, Integer>();
         int counter = 0;
-        for (BinaryRule bRule : grammar.binaryRulesByLeftChild.valueSet()) {
-            if (!aToInd.containsKey(bRule.parent)) {
-                aToInd.put(tag, counter++);
-            }
-            if (!aToInd.containsKey(bRule.leftChild)) {
-                aToInd.put(tag, counter++);
-            }
-            if (!aToInd.containsKey(bRule.rightChild)) {
-                aToInd.put(tag, counter++);
+        for (List<Grammar.BinaryRule> bRuleList : grammar.binaryRulesByLeftChild.values()) {
+            for (Grammar.BinaryRule bRule : bRuleList) {
+                if (!aToInd.containsKey(bRule.parent)) {
+                    aToInd.put(bRule.parent, counter++);
+                }
+                if (!aToInd.containsKey(bRule.leftChild)) {
+                    aToInd.put(bRule.leftChild, counter++);
+                }
+                if (!aToInd.containsKey(bRule.rightChild)) {
+                    aToInd.put(bRule.rightChild, counter++);
+                }                
             }
         }
-        for (UnaryRule uRule : grammar.unaryRulesByChild.valueSet()) {
-            if (!aToInd.containsKey(uRule.parent)) {
-                aToInd.put(tag, counter++);
-            }
-            if (!aToInd.containsKey(uRule.child)) {
-                aToInd.put(tag, counter++);
+        for (List<Grammar.UnaryRule> uRuleList : grammar.unaryRulesByChild.values()) {
+            for (Grammar.UnaryRule uRule : uRuleList) {
+                if (!aToInd.containsKey(uRule.parent)) {
+                    aToInd.put(uRule.parent, counter++);
+                }
+                if (!aToInd.containsKey(uRule.child)) {
+                    aToInd.put(uRule.child, counter++);
+                }                
             }
         }
 
