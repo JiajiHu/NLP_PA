@@ -22,57 +22,41 @@ public class PCFGParser implements Parser {
         grammar = new Grammar(binTrees);
     }
 
+    private int getInd (String s, Map<String, Integer> aToInd, int[] counter) {
+        if (aToInd.containsKey(s)) {
+            return aToInd.get(s);
+        } else {
+            counter[0] += 1;
+            aToInd.put(s, counter[0]);
+            return counter[0];
+        }
+    }
+
     public Tree<String> getBestParse(List<String> sentence) {
         Map<String, Integer> aToInd = new HashMap<String, Integer>();
-        int counter = 0;
-        for (List<Grammar.BinaryRule> bRuleList : grammar.binaryRulesByLeftChild.values()) {
-            for (Grammar.BinaryRule bRule : bRuleList) {
-                if (!aToInd.containsKey(bRule.parent)) {
-                    aToInd.put(bRule.parent, counter++);
-                }
-                if (!aToInd.containsKey(bRule.leftChild)) {
-                    aToInd.put(bRule.leftChild, counter++);
-                }
-                if (!aToInd.containsKey(bRule.rightChild)) {
-                    aToInd.put(bRule.rightChild, counter++);
-                }                
-            }
-        }
-        for (List<Grammar.UnaryRule> uRuleList : grammar.unaryRulesByChild.values()) {
-            for (Grammar.UnaryRule uRule : uRuleList) {
-                if (!aToInd.containsKey(uRule.parent)) {
-                    aToInd.put(uRule.parent, counter++);
-                }
-                if (!aToInd.containsKey(uRule.child)) {
-                    aToInd.put(uRule.child, counter++);
-                }                
-            }
-        }
-
-        for (String key : aToInd.keySet()) {
-            System.out.println(key);
-        }
-
+        int[] counter = {0};
+        
         int numWords = sentence.size();
-        double[][][] score = new double[numWords+1][numWords+1][aToInd.keySet().size()];
-        TripletISS[][][] back = new TripletISS[numWords+1][numWords+1][aToInd.keySet().size()];
+        int aToIndSize = 200;
+        double[][][] score = new double[numWords+1][numWords+1][aToIndSize];
+        TripletISS[][][] back = new TripletISS[numWords+1][numWords+1][aToIndSize];
         
         for (int i=0; i < numWords; i++) {
             String word = sentence.get(i);
-            for (String tag : aToInd.keySet()) {
-                score[i][i+1][aToInd.get(tag)] = lexicon.scoreTagging(word, tag);
+            for (String tag : lexicon.getAllTags()) {
+                score[i][i+1][getInd(tag, aToInd, counter)] = lexicon.scoreTagging(word, tag);
             }
             // handle unaries
             boolean added = true;
             while (added) {
                 added = false;
-                for (String b : aToInd.keySet()) {
-                    int indB = aToInd.get(b);
+                for (String b : lexicon.getAllTags()) {
+                    int indB = getInd(b, aToInd, counter);
                     if (score[i][i+1][indB] > 0) {
                         List<Grammar.UnaryRule> unaryRuleList = grammar.getUnaryRulesByChild(b);
                         for (Grammar.UnaryRule unaryRule : unaryRuleList) {
                             String a = unaryRule.getParent();
-                            int indA = aToInd.get(a);
+                            int indA = getInd(a, aToInd, counter);
                             double prob = unaryRule.getScore() * score[i][i+1][indB];
                             if (prob > score[i][i+1][indA]) {
                                 score[i][i+1][indA] = prob;
@@ -89,14 +73,14 @@ public class PCFGParser implements Parser {
             for (int begin=0; begin < numWords +1 - span; begin++) {
                 int end = begin + span;
                 for (int split=begin+1; split < end; split++) {
-                    for (String b : aToInd.keySet()) {
-                        int indB = aToInd.get(b);
+                    for (String b : lexicon.getAllTags()) {
+                        int indB = getInd(b, aToInd, counter);
                         List<Grammar.BinaryRule> binaryRuleList = grammar.getBinaryRulesByLeftChild(b);
                         for (Grammar.BinaryRule binaryRule : binaryRuleList) {
                             String c = binaryRule.getRightChild();
                             String a = binaryRule.getParent();
-                            int indC = aToInd.get(c);
-                            int indA = aToInd.get(a);
+                            int indC = getInd(c, aToInd, counter);
+                            int indA = getInd(a, aToInd, counter);
                             double prob = score[begin][split][indB] * score[split][end][indC] * binaryRule.getScore();
                             if (prob > score[begin][end][indA]){
                                 score[begin][end][indA] = prob;
@@ -109,12 +93,12 @@ public class PCFGParser implements Parser {
                 boolean added = true;
                 while (added) {
                     added = false;
-                    for (String b : aToInd.keySet()) {
-                        int indB = aToInd.get(b);
+                    for (String b : lexicon.getAllTags()) {
+                        int indB = getInd(b, aToInd, counter);
                         List<Grammar.UnaryRule> unaryRuleList = grammar.getUnaryRulesByChild(b);
                         for (Grammar.UnaryRule unaryRule : unaryRuleList) {
                             String a = unaryRule.getParent();
-                            int indA = aToInd.get(a);
+                            int indA = getInd(a, aToInd, counter);
                             double prob = unaryRule.getScore() * score[begin][end][indB];
                             if (prob > score[begin][end][indA]) {
                                 score[begin][end][indA] = prob;
@@ -136,15 +120,15 @@ public class PCFGParser implements Parser {
     private Tree<String> rebuildTree(int begin, int end, String tag, Map<String, Integer> aToInd, TripletISS[][][] back) {
        // Object[] splited = (Object[])back.get(getPair(begin, end), tag);
         
-        TripletISS backInfo = back[begin][end][aToInd.get(tag)];
-
+        int[] counter = {0};
+        TripletISS backInfo = back[begin][end][getInd(tag, aToInd, counter)];
         if (backInfo == null) {
             return new Tree<String>(tag); 
         }
         
         if (backInfo.getFirst() == -1) {
             String b = backInfo.getSecond();
-            int indB = aToInd.get(b);
+            int indB = getInd(b, aToInd, counter);
             // case1: root is preterminal
             if (back[begin][end][indB] == null || b.equals(tag)) {
                 Tree<String> nextNode = new Tree<String> (b);
