@@ -27,10 +27,10 @@ public class PCFGParser implements Parser {
         int counter = 0;
         for (String tag : lexicon.getAllTags()) {
             if (!aToInd.containsKey(tag)) {
-                aToInd.put(tag, counter++);
+                aToInd.put(tag, counter);
+                counter++;
             }
         }
-        
         int numWords = sentence.size();
 
         double[][][] score = new double[numWords+1][numWords+1][lexicon.getAllTags().size()];
@@ -50,10 +50,6 @@ public class PCFGParser implements Parser {
                     if (score[i][i+1][indB] > 0) {
                         List<Grammar.UnaryRule> unaryRuleList = grammar.getUnaryRulesByChild(b);
                         for (Grammar.UnaryRule unaryRule : unaryRuleList) {
-                            if (unaryRule == null) {
-                                System.out.println("wtf");
-                                continue;
-                            }
                             String a = unaryRule.getParent();
                             int indA = aToInd.get(a);
                             double prob = unaryRule.getScore() * score[i][i+1][indB];
