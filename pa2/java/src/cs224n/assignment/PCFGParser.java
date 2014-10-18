@@ -12,8 +12,7 @@ public class PCFGParser implements Parser {
     private Lexicon lexicon;
     private Interner<Triplet<Integer, Integer, String>> canonT;
     private Interner<Pair<Integer, Integer>> canonP;
-    private Interner<String> canonS;
-
+    
     public void train(List<Tree<String>> trainTrees) {
         // Before we generate our grammar, the training trees
         // need to be binarized so that rules are at most binary
@@ -27,21 +26,18 @@ public class PCFGParser implements Parser {
     }
 
     public Tree<String> getBestParse(List<String> sentence) {
-        
+        long startTime = System.currentTimeMillis();
         int numWords = sentence.size();
         IdentityCounterMap<Pair<Integer, Integer>, String> score = new IdentityCounterMap<Pair<Integer, Integer>, String>();
         Map<Triplet<Integer, Integer, String>, Triplet<Integer, String, String>> back = 
                 new IdentityHashMap<Triplet<Integer, Integer, String>, Triplet<Integer, String, String>>();
         canonT = new Interner<Triplet<Integer, Integer, String>>();
         canonP = new Interner<Pair<Integer, Integer>>();
-        canonS = new Interner<String>();
-
+        
         for (int i=0; i < numWords; i++) {
-            System.out.println("i: "+i+" j: "+(i+1));
             String word = sentence.get(i);
             Pair<Integer, Integer> point = canonP.intern(new Pair(i, i+1));
             for (String tag : lexicon.getAllTags()) {
-                tag = canonS.intern(tag);
                 score.setCount(point, tag, lexicon.scoreTagging(word, tag));
                 back.put(canonT.intern(new Triplet(i, i+1 ,tag)), new Triplet(-2, word, word));
             }
@@ -51,12 +47,11 @@ public class PCFGParser implements Parser {
                 added = false;
                 Set<String> keySet = new HashSet<String>(score.getCounter(point).keySet());
                 for (String b : keySet) {
-                    b = canonS.intern(b);
                     double bScore = score.getCount(point, b);
                     if (bScore > 0) {
                         List<Grammar.UnaryRule> unaryRuleList = grammar.getUnaryRulesByChild(b);
                         for (Grammar.UnaryRule unaryRule : unaryRuleList) {
-                            String a = canonS.intern(unaryRule.getParent());
+                            String a = unaryRule.getParent();
                             double prob = unaryRule.getScore() * bScore;
                             if (prob > score.getCount(point, a)) {
                                 score.setCount(point, a, prob);
@@ -70,21 +65,18 @@ public class PCFGParser implements Parser {
         }
         
         for (int span=2; span < numWords + 1; span++ ) {
-            System.out.println("--------------------");
             for (int begin=0; begin < numWords +1 - span; begin++) {
                 int end = begin + span;
-                System.out.println("i: "+begin+" j: "+end);
                 Pair<Integer, Integer> pointA = canonP.intern(new Pair(begin, end));
                 for (int split=begin+1; split < end; split++) {
                     Pair<Integer, Integer> pointB = canonP.intern(new Pair(begin, split));
                     Pair<Integer, Integer> pointC = canonP.intern(new Pair(split, end));
                     Set<String> keySet = new HashSet<String>(score.getCounter(pointB).keySet());
                     for (String b : keySet) {
-                        b = canonS.intern(b);
                         List<Grammar.BinaryRule> binaryRuleList = grammar.getBinaryRulesByLeftChild(b);
                         for (Grammar.BinaryRule binaryRule : binaryRuleList) {
-                            String c = canonS.intern(binaryRule.getRightChild());
-                            String a = canonS.intern(binaryRule.getParent());
+                            String c = binaryRule.getRightChild();
+                            String a = binaryRule.getParent();
                             double prob = score.getCount(pointB, b) * score.getCount(pointC, c) * binaryRule.getScore();
                             if (prob > score.getCount(pointA, a)){
                                 score.setCount(pointA, a, prob);
@@ -99,10 +91,9 @@ public class PCFGParser implements Parser {
                     added = false;
                     Set<String> keySet = new HashSet<String>(score.getCounter(pointA).keySet());
                     for (String b : keySet) {
-                        b = canonS.intern(b);
                         List<Grammar.UnaryRule> unaryRuleList = grammar.getUnaryRulesByChild(b);
                         for (Grammar.UnaryRule unaryRule : unaryRuleList) {
-                            String a = canonS.intern(unaryRule.getParent());
+                            String a = unaryRule.getParent();
                             double prob = unaryRule.getScore() * score.getCount(pointA, b);
                             if (prob > score.getCount(pointA, a)) {
                                 score.setCount(pointA, a, prob);
@@ -116,6 +107,7 @@ public class PCFGParser implements Parser {
         }
         // rebuild best parse tree
         Tree<String> bestParse = rebuildTree(0, numWords, "ROOT", back);
+        System.out.println("Time elapsed: " + (System.currentTimeMillis() - startTime)/1000.0);
         return TreeAnnotations.unAnnotateTree(bestParse);
     }
 

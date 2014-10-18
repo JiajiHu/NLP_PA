@@ -23,7 +23,7 @@ public class IdentityCounterMap<K, V> {
 
   public IdentityCounterMap() {
     this(new MapFactory.IdentityHashMapFactory<K, Counter<V>>(), 
-         new MapFactory.IdentityHashMapFactory<V, Double>());
+         new MapFactory.HashMapFactory<V, Double>());
   }
 
   public IdentityCounterMap(MapFactory<K, Counter<V>> outerMF, 
