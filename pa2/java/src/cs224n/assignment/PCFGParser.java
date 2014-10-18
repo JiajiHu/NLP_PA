@@ -50,6 +50,10 @@ public class PCFGParser implements Parser {
                     if (score[i][i+1][indB] > 0) {
                         List<Grammar.UnaryRule> unaryRuleList = grammar.getUnaryRulesByChild(b);
                         for (Grammar.UnaryRule unaryRule : unaryRuleList) {
+                            if (unaryRule == null) {
+                                System.out.println("wtf");
+                                continue;
+                            }
                             String a = unaryRule.getParent();
                             int indA = aToInd.get(a);
                             double prob = unaryRule.getScore() * score[i][i+1][indB];
