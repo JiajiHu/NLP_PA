@@ -2,7 +2,7 @@ package cs224n.assignment;
 
 import cs224n.ling.Tree;
 import java.util.*;
-import cs224n.util.*;
+import cs224n.assignment.TripletISS;
 
 /**
  * The CKY PCFG Parser you will implement.
@@ -34,7 +34,7 @@ public class PCFGParser implements Parser {
         int numWords = sentence.size();
 
         double[][][] score = new double[numWords+1][numWords+1][lexicon.getAllTags().size()];
-        Triplet<Integer, String, String>[][][] back = (Triplet<Integer, String, String>[][][]) new Object[numWords+1][numWords+1][lexicon.getAllTags().size()];
+        TripletISS[][][] back = new TripletISS[numWords+1][numWords+1][lexicon.getAllTags().size()];
         
         for (int i=0; i < numWords; i++) {
             String word = sentence.get(i);
@@ -55,7 +55,7 @@ public class PCFGParser implements Parser {
                             double prob = unaryRule.getScore() * score[i][i+1][indB];
                             if (prob > score[i][i+1][indA]) {
                                 score[i][i+1][indA] = prob;
-                                back[i][i+1][indA] = new Triplet<Integer, String, String>(-1, b, b);
+                                back[i][i+1][indA] = new TripletISS(-1, b, b);
                                 added = true;
                             }
                         }
@@ -79,7 +79,7 @@ public class PCFGParser implements Parser {
                             double prob = score[begin][split][indB] * score[split][end][indC] * binaryRule.getScore();
                             if (prob > score[begin][end][indA]){
                                 score[begin][end][indA] = prob;
-                                back[begin][end][indA] = new Triplet<Integer, String, String>(split, b, c);
+                                back[begin][end][indA] = new TripletISS(split, b, c);
                             }
                         }
                     }
@@ -97,7 +97,7 @@ public class PCFGParser implements Parser {
                             double prob = unaryRule.getScore() * score[begin][end][indB];
                             if (prob > score[begin][end][indA]) {
                                 score[begin][end][indA] = prob;
-                                back[begin][end][indA] = new Triplet<Integer, String, String>(-1, b, b);
+                                back[begin][end][indA] = new TripletISS(-1, b, b);
                                 added = true;
                             }
                         }
@@ -112,10 +112,10 @@ public class PCFGParser implements Parser {
     }
 
     // rebuild a tree
-    private Tree<String> rebuildTree(int begin, int end, String tag, Map<String, Integer> aToInd, Triplet<Integer, String, String>[][][] back) {
+    private Tree<String> rebuildTree(int begin, int end, String tag, Map<String, Integer> aToInd, TripletISS[][][] back) {
        // Object[] splited = (Object[])back.get(getPair(begin, end), tag);
         
-        Triplet<Integer, String, String> backInfo = back[begin][end][aToInd.get(tag)];
+        TripletISS backInfo = back[begin][end][aToInd.get(tag)];
 
         if (backInfo == null) {
             return new Tree<String>(tag); 
