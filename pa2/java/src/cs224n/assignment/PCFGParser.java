@@ -1,7 +1,7 @@
 package cs224n.assignment;
 
 import cs224n.ling.Tree;
-import cs224n.util.Counter;
+import cs224n.util.CounterMap;
 import cs224n.util.Pair;
 import cs224n.util.Triplet;
 import java.util.*;
@@ -26,47 +26,41 @@ public class PCFGParser implements Parser {
     }
 
     public Tree<String> getBestParse(List<String> sentence) {
-        Map<Pair<Integer, Integer>, Set<String>> tagDict = new HashMap<Pair<Integer, Integer> ,Set<String>>();
+        // Map<Pair<Integer, Integer>, Set<String>> tagDict = new HashMap<Pair<Integer, Integer> ,Set<String>>();
         
         int numWords = sentence.size();
-        Counter<Triplet<Integer, Integer, String>> score = new Counter<Triplet<Integer, Integer, String>>();
+        CounterMap<Pair<Integer, Integer>, String> score = new CounterMap<Pair<Integer, Integer>, String>();
         Map<Triplet<Integer, Integer, String>, Triplet<Integer, String, String>> back = new HashMap<Triplet<Integer, Integer, String>, Triplet<Integer, String, String>>();
         
         for (int i=0; i < numWords; i++) {
             System.out.println("i: "+i+" j: "+(i+1));
             String word = sentence.get(i);
-            Set<String> tagSet = new HashSet<String>();
+            Pair<Integer, Integer> point = new Pair<Integer, Integer>(i, i+1);
             for (String tag : lexicon.getAllTags()) {
-                tagSet.add(tag);
-                Triplet<Integer, Integer, String> point = new Triplet<Integer, Integer, String>(i, i+1, tag);
-                score.setCount(point, lexicon.scoreTagging(word, tag));
-                back.put(point, new Triplet<Integer, String, String>(-2, word, word));
+                score.setCount(point, tag, lexicon.scoreTagging(word, tag));
+                back.put(new Triplet<Integer, Integer, String>(i, i+1 ,tag), new Triplet<Integer, String, String>(-2, word, word));
             }
             // handle unaries
             boolean added = true;
             while (added) {
                 added = false;
-                Set<String> keySet = new HashSet<String>(tagSet);
+                Set<String> keySet = new HashSet<String>(score.getCounter(point).keySet());
                 for (String b : keySet) {
-                    Triplet<Integer, Integer, String> pointB = new Triplet<Integer, Integer, String>(i, i+1, b);
-                    double bScore = score.getCount(pointB);
+                    double bScore = score.getCount(point, b);
                     if (bScore > 0) {
                         List<Grammar.UnaryRule> unaryRuleList = grammar.getUnaryRulesByChild(b);
                         for (Grammar.UnaryRule unaryRule : unaryRuleList) {
                             String a = unaryRule.getParent();
-                            tagSet.add(a);
-                            Triplet<Integer, Integer, String> pointA = new Triplet<Integer, Integer, String>(i, i+1, a);
                             double prob = unaryRule.getScore() * bScore;
-                            if (prob > score.getCount(pointA)) {
-                                score.setCount(pointA, prob);
-                                back.put(pointA, new Triplet<Integer, String, String>(-1, b, b));
+                            if (prob > score.getCount(point, a)) {
+                                score.setCount(point, a, prob);
+                                back.put(new Triplet<Integer, Integer, String>(i, i+1 ,a), new Triplet<Integer, String, String>(-1, b, b));
                                 added = true;
                             }
                         }
                     }
                 }
             }
-            tagDict.put(new Pair<Integer, Integer>(i,i+1), tagSet);
         }
         
         for (int span=2; span < numWords + 1; span++ ) {
@@ -74,22 +68,20 @@ public class PCFGParser implements Parser {
             for (int begin=0; begin < numWords +1 - span; begin++) {
                 int end = begin + span;
                 System.out.println("i: "+begin+" j: "+end);
-                Set<String> tagSet = new HashSet<String>();
+                Pair<Integer, Integer> pointA = new Pair(begin, end);
                 for (int split=begin+1; split < end; split++) {
-                    Set<String> keySet = new HashSet<String>(tagDict.get(new Pair(begin, split)));
+                    Pair<Integer, Integer> pointB = new Pair(begin, split);
+                    Pair<Integer, Integer> pointC = new Pair(split, end);
+                    Set<String> keySet = new HashSet<String>(score.getCounter(pointB).keySet());
                     for (String b : keySet) {
-                        Triplet<Integer, Integer, String> pointB = new Triplet<Integer, Integer, String>(begin, split, b);
                         List<Grammar.BinaryRule> binaryRuleList = grammar.getBinaryRulesByLeftChild(b);
                         for (Grammar.BinaryRule binaryRule : binaryRuleList) {
                             String c = binaryRule.getRightChild();
                             String a = binaryRule.getParent();
-                            tagSet.add(a);
-                            Triplet<Integer, Integer, String> pointC = new Triplet<Integer, Integer, String>(split, end, c);
-                            Triplet<Integer, Integer, String> pointA = new Triplet<Integer, Integer, String>(begin, end, a);
-                            double prob = score.getCount(pointB) * score.getCount(pointC) * binaryRule.getScore();
-                            if (prob > score.getCount(pointA)){
-                                score.setCount(pointA, prob);
-                                back.put(pointA, new Triplet<Integer, String, String>(split, b, c));
+                            double prob = score.getCount(pointB, b) * score.getCount(pointC, c) * binaryRule.getScore();
+                            if (prob > score.getCount(pointA, a)){
+                                score.setCount(pointA, a, prob);
+                                back.put(new Triplet<Integer, Integer, String>(begin, end ,a), new Triplet<Integer, String, String>(split, b, c));
                             }
                         }
                     }
@@ -98,24 +90,20 @@ public class PCFGParser implements Parser {
                 boolean added = true;
                 while (added) {
                     added = false;
-                    Set<String> keySet = new HashSet<String>(tagSet);
+                    Set<String> keySet = new HashSet<String>(score.getCounter(pointA).keySet());
                     for (String b : keySet) {
-                        Triplet<Integer, Integer, String> pointB = new Triplet<Integer, Integer, String>(begin, end, b);
                         List<Grammar.UnaryRule> unaryRuleList = grammar.getUnaryRulesByChild(b);
                         for (Grammar.UnaryRule unaryRule : unaryRuleList) {
                             String a = unaryRule.getParent();
-                            tagSet.add(a);
-                            Triplet<Integer, Integer, String> pointA = new Triplet<Integer, Integer, String>(begin, end, a);
-                            double prob = unaryRule.getScore() * score.getCount(pointB);
-                            if (prob > score.getCount(pointA)) {
-                                score.setCount(pointA, prob);
-                                back.put(pointA, new Triplet<Integer, String, String>(-1, b, b));
+                            double prob = unaryRule.getScore() * score.getCount(pointA, b);
+                            if (prob > score.getCount(pointA, a)) {
+                                score.setCount(pointA, a, prob);
+                                back.put(new Triplet<Integer, Integer, String>(begin, end ,a), new Triplet<Integer, String, String>(-1, b, b));
                                 added = true;
                             }
                         }
                     }
                 }
-                tagDict.put(new Pair<Integer, Integer>(begin, end), tagSet);
             }
         }
         // rebuild best parse tree
