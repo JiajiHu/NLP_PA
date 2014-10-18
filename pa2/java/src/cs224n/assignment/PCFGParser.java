@@ -32,6 +32,7 @@ public class PCFGParser implements Parser {
         Map<Triplet<Integer, Integer, String>, Triplet<Integer, String, String>> back = new HashMap<Triplet<Integer, Integer, String>, Triplet<Integer, String, String>>();
         
         for (int i=0; i < numWords; i++) {
+            System.out.println("i: "+i+" j: "+(i+1));
             String word = sentence.get(i);
             Set<String> tagSet = new HashSet<String>();
             for (String tag : lexicon.getAllTags()) {
@@ -68,8 +69,10 @@ public class PCFGParser implements Parser {
         }
         
         for (int span=2; span < numWords + 1; span++ ) {
+            System.out.println("--------------------");
             for (int begin=0; begin < numWords +1 - span; begin++) {
                 int end = begin + span;
+                System.out.println("i: "+begin+" j: "+end);
                 Set<String> tagSet = new HashSet<String>();
                 for (int split=begin+1; split < end; split++) {
                     Set<String> keySet = new HashSet<String>(tagDict.get(new Pair(begin, split)));
