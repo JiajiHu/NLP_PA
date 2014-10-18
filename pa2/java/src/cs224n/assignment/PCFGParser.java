@@ -3,6 +3,7 @@ package cs224n.assignment;
 import cs224n.ling.Tree;
 import java.util.*;
 import cs224n.assignment.*;
+import cs224n.ling.Trees;
 
 /**
  * The CKY PCFG Parser you will implement.
@@ -17,7 +18,9 @@ public class PCFGParser implements Parser {
         List<Tree<String>> binTrees = new ArrayList<Tree<String>>();
         for (Tree<String> trainTree: trainTrees) {
             binTrees.add(TreeAnnotations.annotateTree(trainTree));
+    //        System.out.println("Tree: " + Trees.PennTreeRenderer.render(trainTree));
         }
+
         lexicon = new Lexicon(binTrees);
         grammar = new Grammar(binTrees);
     }
@@ -45,12 +48,14 @@ public class PCFGParser implements Parser {
             String word = sentence.get(i);
             for (String tag : lexicon.getAllTags()) {
                 score[i][i+1][getInd(tag, aToInd, counter)] = lexicon.scoreTagging(word, tag);
+                back[i][i+1][getInd(tag, aToInd, counter)] = new TripletISS(-2, word, word);
             }
             // handle unaries
             boolean added = true;
             while (added) {
                 added = false;
-                for (String b : lexicon.getAllTags()) {
+                Set<String> keySet = new HashSet<String>(aToInd.keySet());
+                for (String b : keySet) {
                     int indB = getInd(b, aToInd, counter);
                     if (score[i][i+1][indB] > 0) {
                         List<Grammar.UnaryRule> unaryRuleList = grammar.getUnaryRulesByChild(b);
@@ -65,15 +70,17 @@ public class PCFGParser implements Parser {
                             }
                         }
                     }
-                }
+                }            
             }
         }
+
         
         for (int span=2; span < numWords + 1; span++ ) {
             for (int begin=0; begin < numWords +1 - span; begin++) {
                 int end = begin + span;
                 for (int split=begin+1; split < end; split++) {
-                    for (String b : lexicon.getAllTags()) {
+                    Set<String> keySet = new HashSet<String>(aToInd.keySet());
+                    for (String b : keySet) {
                         int indB = getInd(b, aToInd, counter);
                         List<Grammar.BinaryRule> binaryRuleList = grammar.getBinaryRulesByLeftChild(b);
                         for (Grammar.BinaryRule binaryRule : binaryRuleList) {
@@ -93,7 +100,8 @@ public class PCFGParser implements Parser {
                 boolean added = true;
                 while (added) {
                     added = false;
-                    for (String b : lexicon.getAllTags()) {
+                    Set<String> keySet = new HashSet<String>(aToInd.keySet());
+                    for (String b : keySet) {
                         int indB = getInd(b, aToInd, counter);
                         List<Grammar.UnaryRule> unaryRuleList = grammar.getUnaryRulesByChild(b);
                         for (Grammar.UnaryRule unaryRule : unaryRuleList) {
@@ -112,35 +120,34 @@ public class PCFGParser implements Parser {
         }
         // rebuild best parse tree
         Tree<String> bestParse = rebuildTree(0, numWords, "ROOT", aToInd, back);
+//        System.out.println("Tree: " + Trees.PennTreeRenderer.render(TreeAnnotations.unAnnotateTree(bestParse)));
         // unAnnotate tree        
         return TreeAnnotations.unAnnotateTree(bestParse);
     }
 
     // rebuild a tree
     private Tree<String> rebuildTree(int begin, int end, String tag, Map<String, Integer> aToInd, TripletISS[][][] back) {
-       // Object[] splited = (Object[])back.get(getPair(begin, end), tag);
-        
         int[] counter = {0};
         TripletISS backInfo = back[begin][end][getInd(tag, aToInd, counter)];
         if (backInfo == null) {
             return new Tree<String>(tag); 
         }
-        
+        // case1: root is preterminal
+        if (backInfo.getFirst() == -2) {
+            String b = backInfo.getSecond();
+            Tree<String> nextNode = new Tree<String> (b);
+            Tree<String> node = new Tree<String> (tag, Collections.singletonList(nextNode));
+            return node;
+        }
+        // case2: root is nonterm with unary rebuild rule
         if (backInfo.getFirst() == -1) {
             String b = backInfo.getSecond();
             int indB = getInd(b, aToInd, counter);
-            // case1: root is preterminal
-            if (back[begin][end][indB] == null || b.equals(tag)) {
-                Tree<String> nextNode = new Tree<String> (b);
-                Tree<String> node = new Tree<String> (tag, Collections.singletonList(nextNode));
-                return node;
-            }// case2: root is nonterm with unary rebuild rule
-            else { 
-                Tree<String> nextNode = rebuildTree (begin, end, b, aToInd, back);
-                Tree<String> node = new Tree<String> (tag, Collections.singletonList(nextNode));
-                return node;
-            }
-        }//case3: root is nonterm with binary rebuild rule
+            Tree<String> nextNode = rebuildTree (begin, end, b, aToInd, back);
+            Tree<String> node = new Tree<String> (tag, Collections.singletonList(nextNode));
+            return node;
+        }
+        //case3: root is nonterm with binary rebuild rule
         else {
             int split =  backInfo.getFirst();
             String leftTag = backInfo.getSecond();
