@@ -47,7 +47,7 @@ public class TripletISS {
 		return "(" + getFirst() + ", " + getSecond() + ", " + getThird() + ")";
 	}
 	
-	public Triplet(Integer first, String second, String third) {
+	public TripletISS(Integer first, String second, String third) {
 		this.first = first;
 		this.second = second;
 		this.third = third;
