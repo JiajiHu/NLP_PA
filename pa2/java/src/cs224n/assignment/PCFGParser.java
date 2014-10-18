@@ -1,6 +1,7 @@
 package cs224n.assignment;
 
 import cs224n.ling.Tree;
+import cs224n.util.Counter;
 import cs224n.util.Pair;
 import cs224n.util.Triplet;
 import java.util.*;
@@ -28,7 +29,7 @@ public class PCFGParser implements Parser {
         Map<Pair<Integer, Integer>, Set<String>> tagDict = new HashMap<Pair<Integer, Integer> ,Set<String>>();
         
         int numWords = sentence.size();
-        Map<Triplet<Integer, Integer, String>, Double> score = new HashMap<Triplet<Integer, Integer, String>, Double>();
+        Counter<Triplet<Integer, Integer, String>> score = new Counter<Triplet<Integer, Integer, String>>();
         Map<Triplet<Integer, Integer, String>, Triplet<Integer, String, String>> back = new HashMap<Triplet<Integer, Integer, String>, Triplet<Integer, String, String>>();
         
         for (int i=0; i < numWords; i++) {
@@ -38,7 +39,7 @@ public class PCFGParser implements Parser {
             for (String tag : lexicon.getAllTags()) {
                 tagSet.add(tag);
                 Triplet<Integer, Integer, String> point = new Triplet<Integer, Integer, String>(i, i+1, tag);
-                score.put(point, lexicon.scoreTagging(word, tag));
+                score.setCount(point, lexicon.scoreTagging(word, tag));
                 back.put(point, new Triplet<Integer, String, String>(-2, word, word));
             }
             // handle unaries
@@ -48,7 +49,7 @@ public class PCFGParser implements Parser {
                 Set<String> keySet = new HashSet<String>(tagSet);
                 for (String b : keySet) {
                     Triplet<Integer, Integer, String> pointB = new Triplet<Integer, Integer, String>(i, i+1, b);
-                    double bScore = score.containsKey(pointB) ? score.get(pointB) : 0.0;
+                    double bScore = score.getCount(pointB);
                     if (bScore > 0) {
                         List<Grammar.UnaryRule> unaryRuleList = grammar.getUnaryRulesByChild(b);
                         for (Grammar.UnaryRule unaryRule : unaryRuleList) {
@@ -56,8 +57,8 @@ public class PCFGParser implements Parser {
                             tagSet.add(a);
                             Triplet<Integer, Integer, String> pointA = new Triplet<Integer, Integer, String>(i, i+1, a);
                             double prob = unaryRule.getScore() * bScore;
-                            if (!score.containsKey(pointA) || prob > score.get(pointA)) {
-                                score.put(pointA, prob);
+                            if (prob > score.getCount(pointA)) {
+                                score.setCount(pointA, prob);
                                 back.put(pointA, new Triplet<Integer, String, String>(-1, b, b));
                                 added = true;
                             }
@@ -85,11 +86,9 @@ public class PCFGParser implements Parser {
                             tagSet.add(a);
                             Triplet<Integer, Integer, String> pointC = new Triplet<Integer, Integer, String>(split, end, c);
                             Triplet<Integer, Integer, String> pointA = new Triplet<Integer, Integer, String>(begin, end, a);
-                            double scoreB = score.containsKey(pointB) ? score.get(pointB) : 0;
-                            double scoreC = score.containsKey(pointC) ? score.get(pointC) : 0;
-                            double prob = scoreB * scoreC * binaryRule.getScore();
-                            if (!score.containsKey(pointA) || prob > score.get(pointA)){
-                                score.put(pointA, prob);
+                            double prob = score.getCount(pointB) * score.getCount(pointC) * binaryRule.getScore();
+                            if (prob > score.getCount(pointA)){
+                                score.setCount(pointA, prob);
                                 back.put(pointA, new Triplet<Integer, String, String>(split, b, c));
                             }
                         }
@@ -107,10 +106,9 @@ public class PCFGParser implements Parser {
                             String a = unaryRule.getParent();
                             tagSet.add(a);
                             Triplet<Integer, Integer, String> pointA = new Triplet<Integer, Integer, String>(begin, end, a);
-                            double scoreB = score.containsKey(pointB) ? score.get(pointB) : 0;
-                            double prob = unaryRule.getScore() * scoreB;
-                            if (!score.containsKey(pointA) || prob > score.get(pointA)) {
-                                score.put(pointA, prob);
+                            double prob = unaryRule.getScore() * score.getCount(pointB);
+                            if (prob > score.getCount(pointA)) {
+                                score.setCount(pointA, prob);
                                 back.put(pointA, new Triplet<Integer, String, String>(-1, b, b));
                                 added = true;
                             }
