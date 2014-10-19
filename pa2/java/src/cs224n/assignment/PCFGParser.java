@@ -73,14 +73,20 @@ public class PCFGParser implements Parser {
                     Pair<Integer, Integer> pointC = canonP.intern(new Pair(split, end));
                     Set<String> keySet = new HashSet<String>(score.getCounter(pointB).keySet());
                     for (String b : keySet) {
-                        List<Grammar.BinaryRule> binaryRuleList = grammar.getBinaryRulesByLeftChild(b);
-                        for (Grammar.BinaryRule binaryRule : binaryRuleList) {
-                            String c = binaryRule.getRightChild();
-                            String a = binaryRule.getParent();
-                            double prob = score.getCount(pointB, b) * score.getCount(pointC, c) * binaryRule.getScore();
-                            if (prob > score.getCount(pointA, a)){
-                                score.setCount(pointA, a, prob);
-                                back.put(canonT.intern(new Triplet(begin, end ,a)), new Triplet(split, b, c));
+                        double scoreB = score.getCount(pointB, b);
+                        if (scoreB > 0){
+                            List<Grammar.BinaryRule> binaryRuleList = grammar.getBinaryRulesByLeftChild(b);
+                            for (Grammar.BinaryRule binaryRule : binaryRuleList) {
+                                String c = binaryRule.getRightChild();
+                                double scoreC = score.getCount(pointC, c);
+                                if (scoreC > 0){
+                                    String a = binaryRule.getParent();
+                                    double prob = scoreB * scoreC * binaryRule.getScore();
+                                    if (prob > score.getCount(pointA, a)){
+                                        score.setCount(pointA, a, prob);
+                                        back.put(canonT.intern(new Triplet(begin, end ,a)), new Triplet(split, b, c));
+                                    }
+                                }
                             }
                         }
                     }
@@ -91,14 +97,17 @@ public class PCFGParser implements Parser {
                     added = false;
                     Set<String> keySet = new HashSet<String>(score.getCounter(pointA).keySet());
                     for (String b : keySet) {
-                        List<Grammar.UnaryRule> unaryRuleList = grammar.getUnaryRulesByChild(b);
-                        for (Grammar.UnaryRule unaryRule : unaryRuleList) {
-                            String a = unaryRule.getParent();
-                            double prob = unaryRule.getScore() * score.getCount(pointA, b);
-                            if (prob > score.getCount(pointA, a)) {
-                                score.setCount(pointA, a, prob);
-                                back.put(canonT.intern(new Triplet(begin, end ,a)), new Triplet(-1, b, b));
-                                added = true;
+                        double scoreB = score.getCount(pointA, b)
+                        if (scoreB > 0) {
+                            List<Grammar.UnaryRule> unaryRuleList = grammar.getUnaryRulesByChild(b);
+                            for (Grammar.UnaryRule unaryRule : unaryRuleList) {
+                                String a = unaryRule.getParent();
+                                double prob = unaryRule.getScore() * scoreB;
+                                if (prob > score.getCount(pointA, a)) {
+                                    score.setCount(pointA, a, prob);
+                                    back.put(canonT.intern(new Triplet(begin, end ,a)), new Triplet(-1, b, b));
+                                    added = true;
+                                }
                             }
                         }
                     }
