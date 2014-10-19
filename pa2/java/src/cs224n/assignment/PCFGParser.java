@@ -10,7 +10,6 @@ import java.util.*;
 public class PCFGParser implements Parser {
     private Grammar grammar;
     private Lexicon lexicon;
-    private Interner<Triplet<Integer, Integer, String>> canonT;
     private Interner<Pair<Integer, Integer>> canonP;
     
     public void train(List<Tree<String>> trainTrees) {
@@ -29,9 +28,7 @@ public class PCFGParser implements Parser {
         long startTime = System.currentTimeMillis();
         int numWords = sentence.size();
         IdentityCounterMap<Pair<Integer, Integer>, String> score = new IdentityCounterMap<Pair<Integer, Integer>, String>();
-        Map<Triplet<Integer, Integer, String>, Triplet<Integer, String, String>> back = 
-                new IdentityHashMap<Triplet<Integer, Integer, String>, Triplet<Integer, String, String>>();
-        canonT = new Interner<Triplet<Integer, Integer, String>>();
+        IdentityTripletMap<Pair<Integer, Integer>, String> back = new IdentityTripletMap<Pair<Integer, Integer>, String>();
         canonP = new Interner<Pair<Integer, Integer>>();
         
         for (int i=0; i < numWords; i++) {
@@ -39,7 +36,7 @@ public class PCFGParser implements Parser {
             Pair<Integer, Integer> point = canonP.intern(new Pair(i, i+1));
             for (String tag : lexicon.getAllTags()) {
                 score.setCount(point, tag, lexicon.scoreTagging(word, tag));
-                back.put(canonT.intern(new Triplet(i, i+1 ,tag)), new Triplet(-2, word, word));
+                back.put(point, tag, new Triplet(-2, word, word));
             }
             // handle unaries
             Set<String> nextSet = new HashSet<String>(score.getCounter(point).keySet());
@@ -60,7 +57,7 @@ public class PCFGParser implements Parser {
                                     nextSet.add(a);
                                 }
                                 score.setCount(point, a, prob);
-                                back.put(canonT.intern(new Triplet(i, i+1 ,a)), new Triplet(-1, b, b));
+                                back.put(point, a, new Triplet(-1, b, b));
                                 added = true;
                             }
                         }
@@ -89,7 +86,7 @@ public class PCFGParser implements Parser {
                                     double prob = scoreB * scoreC * binaryRule.getScore();
                                     if (prob > score.getCount(pointA, a)){
                                         score.setCount(pointA, a, prob);
-                                        back.put(canonT.intern(new Triplet(begin, end ,a)), new Triplet(split, b, c));
+                                        back.put(pointA, a, new Triplet(split, b, c));
                                     }
                                 }
                             }
@@ -115,7 +112,7 @@ public class PCFGParser implements Parser {
                                         nextSet.add(a);
                                     }
                                     score.setCount(pointA, a, prob);
-                                    back.put(canonT.intern(new Triplet(begin, end ,a)), new Triplet(-1, b, b));
+                                    back.put(pointA, a, new Triplet(-1, b, b));
                                     added = true;
                                 }
                             }
@@ -131,8 +128,8 @@ public class PCFGParser implements Parser {
     }
 
     // rebuild a tree
-    private Tree<String> rebuildTree(int begin, int end, String tag, Map<Triplet<Integer, Integer, String>, Triplet<Integer, String, String>> back) {
-        Triplet<Integer, String, String> backInfo = back.get(canonT.intern(new Triplet(begin, end, tag)));
+    private Tree<String> rebuildTree(int begin, int end, String tag, IdentityTripletMap<Pair<Integer, Integer>, String> back) {
+        Triplet<Integer, String, String> backInfo = back.get(canonP.intern(new Pair(begin, end)), tag);
         if (backInfo == null) {
             return new Tree<String>(tag); 
         }
