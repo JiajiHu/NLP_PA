@@ -42,10 +42,12 @@ public class PCFGParser implements Parser {
                 back.put(canonT.intern(new Triplet(i, i+1 ,tag)), new Triplet(-2, word, word));
             }
             // handle unaries
+            Set<String> nextSet = new HashSet<String>(score.getCounter(point).keySet());
             boolean added = true;
-            while (added) {
+            while (added && nextSet.size() > 0) {
                 added = false;
-                Set<String> keySet = new HashSet<String>(score.getCounter(point).keySet());
+                Set<String> keySet = nextSet;
+                nextSet = new HashSet<String>();
                 for (String b : keySet) {
                     double bScore = score.getCount(point, b);
                     if (bScore > 0) {
@@ -54,6 +56,9 @@ public class PCFGParser implements Parser {
                             String a = unaryRule.getParent();
                             double prob = unaryRule.getScore() * bScore;
                             if (prob > score.getCount(point, a)) {
+                                if (!score.getCounter(point).containsKey(a)) {
+                                    nextSet.add(a);
+                                }
                                 score.setCount(point, a, prob);
                                 back.put(canonT.intern(new Triplet(i, i+1 ,a)), new Triplet(-1, b, b));
                                 added = true;
@@ -92,18 +97,23 @@ public class PCFGParser implements Parser {
                     }
                 }
                 // handle unaries
+                Set<String> nextSet = new HashSet<String>(score.getCounter(pointA).keySet());
                 boolean added = true;
-                while (added) {
+                while (added && nextSet.size() > 0) {
                     added = false;
-                    Set<String> keySet = new HashSet<String>(score.getCounter(pointA).keySet());
+                    Set<String> keySet = nextSet;
+                    nextSet = new HashSet<String>();
                     for (String b : keySet) {
-                        double scoreB = score.getCount(pointA, b)
+                        double scoreB = score.getCount(pointA, b);
                         if (scoreB > 0) {
                             List<Grammar.UnaryRule> unaryRuleList = grammar.getUnaryRulesByChild(b);
                             for (Grammar.UnaryRule unaryRule : unaryRuleList) {
                                 String a = unaryRule.getParent();
                                 double prob = unaryRule.getScore() * scoreB;
                                 if (prob > score.getCount(pointA, a)) {
+                                    if (!score.getCounter(pointA).containsKey(a)) {
+                                        nextSet.add(a);
+                                    }
                                     score.setCount(pointA, a, prob);
                                     back.put(canonT.intern(new Triplet(begin, end ,a)), new Triplet(-1, b, b));
                                     added = true;
