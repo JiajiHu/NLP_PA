@@ -27,6 +27,7 @@ public class PCFGParser implements Parser {
     public Tree<String> getBestParse(List<String> sentence) {
         long startTime = System.currentTimeMillis();
         int numWords = sentence.size();
+        System.out.println("Sentence Length: " + numWords);
         IdentityCounterMap<Pair<Integer, Integer>, String> score = new IdentityCounterMap<Pair<Integer, Integer>, String>();
         IdentityTripletMap<Pair<Integer, Integer>, String> back = new IdentityTripletMap<Pair<Integer, Integer>, String>();
         canonP = new Interner<Pair<Integer, Integer>>();
