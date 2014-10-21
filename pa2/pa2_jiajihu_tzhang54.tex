@@ -19,24 +19,28 @@ As introduced in the videos, the time complexity of the CKY algorithm is $O(n^3)
 
 We started with a naive implementation of the algorithm. Note that the key design choices in the implementation is what kind of data structure we choose to store the intermediate results. In particular, the two tables \texttt{score} and \texttt{back}.
 
-From the very start, it was clear that we cannot use a 3-d array to store these tables, as the third dimension will be very large but sparse, due to the large number of distinct words in the treebank, and we will quickly run out of memory. Therefore, we chose to use a Hashmap data structure. We chose \texttt{HashMap<Triplet<Integer, Integer, String>, Double>} for \texttt{score}, and \texttt{HashMap<Triplet<Integer, Integer, String>, Triplet<Integer, String, String>>} for \texttt{back}. Also, to keep track of which tags had non-zero values in a block, we kept a \texttt{HashMap<Pair<Integer, Integer>, Set<String>>} called \texttt{tagDict} to retrieve that set of tags.
+From the very start, it was clear that we cannot use a 3-d array to store these tables, as the third dimension will be very large but sparse, due to the large number of distinct words in the treebank, and we will quickly run out of memory. Therefore, we chose to use a Hashmap data structure. We chose \texttt{HashMap<Triplet<Integer, Integer, String>, Double>} for \texttt{score}, and \texttt{HashMap<Triplet<Integer, Integer, String>, Triplet<Integer, String, String>>} for \texttt{back}. Also, to keep track of which tags had non-zero values in a block, we kept a \texttt{HashMap<Pair<Integer, Integer>, Set<String>>} called \texttt{tagDict} to get that set of tags.
 
 Looking back, this setup was highly inefficient. Using the optimizations described below, we were able to dramatically improve our speed performance, resulting in a setup that could parse the test set in less than 3 minutes, averaging one parse per second, and handle sentences of length 20 in 2 seconds.
 \subsection{Optimizations}
 \subsubsection{Data Structures}
-First, we came across the \texttt{CounterMap} data structure provided in the code library. We realized that it was quite convenient for our use case. Using a \texttt{CounterMap<Pair<Integer, Integer>, String>} for \texttt{score}, we were able to gt rid of \texttt{tagDict}, since the information was already in the Map.
+First, we came across the \texttt{CounterMap} data structure provided in the code library. We realized that it was quite convenient for our use case. Using a \texttt{CounterMap<Pair<Integer, Integer>, String>} for \texttt{score}, we were able to get rid of \texttt{tagDict}, since the information was already in the Map.
 
-Next, we looked into using \texttt{IdentityHashMap} to further improve the speed of operations in \texttt{score}. Since a data structure that incorporated \texttt{IdentityHashMap} into \texttt{CounterMap} was not provided, we wrote our own \texttt{IndentityCounterMap}, which used an \texttt{IdentityHashMap} in the first step, which is \texttt{Pair<Integer, Integer>} to \texttt{String}. We didn't use it for the \texttt{String} to \texttt{Double} step because we figured that we would then need an \texttt{Interner} for \texttt{String}, which might be computationally heavy and especially heavy on memory.
+Next, we looked into using \texttt{IdentityHashMap} to further improve the speed of operations in \texttt{score}. Since a data structure that incorporated \texttt{IdentityHashMap} into \texttt{CounterMap} was not provided, we wrote our own \texttt{IndentityCounterMap}, which used an \texttt{IdentityHashMap} in the first step, which is \texttt{Pair<Integer, Integer>} to \texttt{String}. We didn't use it for the \texttt{String} to \texttt{Double} step because we figured that we would then need to get canonical representations for \texttt{String}s, which might be computationally heavy and also heavy on memory. In practice, doing that for Strings did negatively impact our performance.
 
 For the \texttt{back} table, we also wanted to incorporate \texttt{IdentityHashMap}. We had the idea that since we were already using an \texttt{Interner<Pair<Integer, Integer>>} for \texttt{score}, we might as well utilize that also for \texttt{back}. Therefore, we came up with a similar data structure to \texttt{IdentityCounterMap}, and named it \texttt{IdentityTripletMap}. Of course, we had to write that up ourselves.
 
-Using these data structures, we were able to dramatically improve our runtimes. In addition, we were able to shave a bit more off our runtime by doing analysis on our code flow.
+Using these data structures, we were able to dramatically improve our runtimes. In addition, we were able to shave a bit more off our runtime by doing code flow analysis.
 \subsubsection{Code Analysis}
-We carefully analyzed our code to see if we could save a bit of computation here and there. For example, by moving our interning 
+We carefully analyzed our code to see if we could save a bit of computation here and there. For example, by moving our interning towards the top of the loops, we could make sure that we didn't repeat that work.
 
-20\%
-\subsection{Results}
-\subsubsection{Run Time}
+Also, we looked at the \texttt{while(added)} loop given by the pseudocode in the videos. We see that the loop goes over all \texttt{A,B} in \texttt{nonterms} and \texttt{A->B in grammar}. We realized that on the second iteration of the loop, we really only need to look at the items newly added in the previous iteration. Therefore, if we just keep track, we can look at much fewer candidates for the unary rule in subsequent iterations. Implementing something to that effect actually sped up the runtime by around 10\%.
+
+There were many similar tweaks to the code. By intuition and also trial and error, we worked out what data structures and what code flow allowed the parser to run faster.
+\section{Adding Vertical Markovization}
+
+\section{Results}
+\subsection{Run Time}
 \begin{center}
 \begin{tabular}{|c|c|c|c|}
 \hline
@@ -47,10 +51,9 @@ Basic & 160.32 & 1.03 & 2.04 \\\hline
 \end{center}
 \begin{figure}[H]
 \centering
-\includegraphics[width=0.6\linewidth]{./stats/runtime}
+\includegraphics[width=0.5\linewidth]{./stats/runtime}
 \end{figure}
-
-\subsubsection{Parsing Score}
+\subsection{Parsing Score}
 \begin{center}
 \begin{tabular}{|c|c|c|c|c|}
 \hline
@@ -59,9 +62,6 @@ Basic & 80.76 & 74.63 & 77.57 & 20.65\\\hline
 
 \end{tabular}
 \end{center}
-
-\section{Adding Vertical Markovization}
-
 \section{Extra Credit}
 
 \end{document}
