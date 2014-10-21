@@ -1,2 +1,5 @@
 *.class
 *.DS_STORE
+*.gz
+*.aux
+*.log

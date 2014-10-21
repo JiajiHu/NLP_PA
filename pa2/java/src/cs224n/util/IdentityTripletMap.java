@@ -4,12 +4,21 @@ import java.util.*;
 public class IdentityTripletMap<K, V> {
 	IdentityHashMap<K,HashMap<V, Triplet>> data = new IdentityHashMap<K,HashMap<V, Triplet>>();
 	
-	public void put(K k, V v, Triplet value) {
-		HashMap<V, Triplet> thisData = getData(k);
-		thisData.put(v, value);
+	public Set<K> keySet() {
+		return data.keySet();
 	}
 	
-	public HashMap<V, Triplet> getData(K k) {
+	public void put(K k, V v, Triplet tri) {
+		HashMap<V, Triplet> thisData = getData(k);
+		thisData.put(v, tri);
+	}
+	
+	public Triplet get(K k, V v) {
+		HashMap<V, Triplet> thisData = getData(k);
+		return thisData.get(v);
+	}
+	
+	private HashMap<V, Triplet> getData(K k) {
 		HashMap<V, Triplet> vToObj = data.get(k);
 		if (vToObj == null) {
 			vToObj = new HashMap<V, Triplet>();
@@ -18,12 +27,4 @@ public class IdentityTripletMap<K, V> {
 		return vToObj;
 	}
 	
-	public Set<K> keySet() {
-		return data.keySet();
-	}
-	
-	public Triplet get(K k, V v) {
-		HashMap<V, Triplet> submap = getData(k);
-		return submap.get(v);
-	}
 }

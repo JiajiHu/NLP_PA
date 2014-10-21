@@ -2,12 +2,12 @@ import numpy as np
 
 x_range=[]
 
-with open('./sentence.txt','r') as sen:
+with open('./sentence3.txt','r') as sen:
 	for line in sen:
 		x_range.append(int(line.split()[2]))
 
 y_range=[]
-with open('./time.txt','r') as time:
+with open('./time3.txt','r') as time:
 	for line in time:
 		y_range.append(float(line.split()[2]))
 

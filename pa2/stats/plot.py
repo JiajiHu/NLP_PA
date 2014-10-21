@@ -4,23 +4,23 @@ import pylab
 
 x_range=[]
 
-with open('./sentence.txt','r') as sen:
+with open('./sentence3.txt','r') as sen:
 	for line in sen:
 		x_range.append(line.split()[2])
 
 y_range=[]
-with open('./time.txt','r') as time:
+with open('./time3.txt','r') as time:
 	for line in time:
 		y_range.append(line.split()[2])
 
-ylim = 3.25
+ylim = 2.50
 xlim = 21
 
 x_range = np.array(x_range).astype('float')
 y_range = np.array(y_range).astype('float')
-zeros = np.zeros(1000)
+zeros = np.zeros(100)
 
-z = np.polyfit(np.append(zeros ,x_range),np.append(zeros ,y_range), 2)
+z = np.polyfit(np.append(zeros ,x_range),np.append(zeros ,y_range), 3)
 f = np.poly1d(z)
 
 x_new = np.linspace(0, xlim, 50)
