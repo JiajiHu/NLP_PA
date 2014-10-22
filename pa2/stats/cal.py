@@ -1,13 +1,15 @@
 import numpy as np
 
-x_range=[]
+SENTENCE_NAME = './sentence3.txt'
+TIME_NAME = './time3.txt'
 
-with open('./sentence3.txt','r') as sen:
+x_range=[]
+with open(SENTENCE_NAME, 'r') as sen:
 	for line in sen:
 		x_range.append(int(line.split()[2]))
 
 y_range=[]
-with open('./time3.txt','r') as time:
+with open(TIME_NAME, 'r') as time:
 	for line in time:
 		y_range.append(float(line.split()[2]))
 
