@@ -39,6 +39,7 @@ public class PCFGParser implements Parser {
                 score.setCount(point, tag, lexicon.scoreTagging(word, tag));
                 back.put(point, tag, new Triplet(-2, word, word));
             }
+            // handle unaries
             Set<String> nextSet = new HashSet<String>(score.getCounter(point).keySet());
             boolean added = true;
             while (added && nextSet.size() > 0) {
@@ -93,6 +94,7 @@ public class PCFGParser implements Parser {
                         }
                     }
                 }
+                // handle unaries
                 Set<String> nextSet = new HashSet<String>(score.getCounter(pointA).keySet());
                 boolean added = true;
                 while (added && nextSet.size() > 0) {
@@ -130,27 +132,34 @@ public class PCFGParser implements Parser {
     private Tree<String> rebuildTree(int begin, int end, String tag, IdentityTripletMap<Pair<Integer, Integer>, String> back) {
         Triplet<Integer, String, String> backInfo = back.get(canonP.intern(new Pair(begin, end)), tag);
         if (backInfo == null) {
-            return new Tree(tag); 
+            return new Tree<String>(tag); 
         }
-        List<Tree<String>> nextNodeList = new ArrayList<Tree<String>>();
-        // preterm
+        // case1: root is preterminal
         if (backInfo.getFirst() == -2) {
             String b = backInfo.getSecond();
-            nextNodeList.add(new Tree(b));
+            Tree<String> nextNode = new Tree<String> (b);
+            Tree<String> node = new Tree<String> (tag, Collections.singletonList(nextNode));
+            return node;
         }
-        // unary
-        else if (backInfo.getFirst() == -1) {
+        // case2: root is nonterm with unary rebuild rule
+        if (backInfo.getFirst() == -1) {
             String b = backInfo.getSecond();
-            nextNodeList.add(rebuildTree(begin, end, b, back));
+            Tree<String> nextNode = rebuildTree (begin, end, b, back);
+            Tree<String> node = new Tree<String> (tag, Collections.singletonList(nextNode));
+            return node;
         }
-        // binary
+        //case3: root is nonterm with binary rebuild rule
         else {
             int split =  backInfo.getFirst();
-            String b = backInfo.getSecond();
-            String c = backInfo.getThird();
-            nextNodeList.add(rebuildTree(begin, split, b, back));
-            nextNodeList.add(rebuildTree(split, end, c, back));
+            String leftTag = backInfo.getSecond();
+            String rightTag = backInfo.getThird();
+            Tree<String> leftNode = rebuildTree(begin, split, leftTag, back);
+            Tree<String> rightNode = rebuildTree(split, end, rightTag, back);
+            List<Tree<String>> nextNodeList = new ArrayList<Tree<String>>();
+            nextNodeList.add(leftNode);
+            nextNodeList.add(rightNode);
+            Tree<String> node = new Tree<String>(tag, nextNodeList);
+            return node;
         }
-        return new Tree(tag, nextNodeList);
     }
 }

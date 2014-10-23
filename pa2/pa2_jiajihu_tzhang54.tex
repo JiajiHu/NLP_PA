@@ -51,8 +51,11 @@ This improvement in results verified the points of integrating vertical markoviz
 \begin{tabular}{|c|c|c|c|}
 \hline
 Algorithm & Total Runtime (s) & Avg. Runtime (s) & Length 20 (s)\\\hline
-Basic & 160.32 & 1.03 & 2.04 \\\hline
-
+1st Order Vertical & 160.32 & 1.03 & 2.04 \\\hline
+2nd Order Vertical & 253.54 & 1.64 & 3.50 \\\hline
+3rd Order Vertical & 344.83  & 2.22 & 4.58 \\\hline
+1st V + 1st H & 373.05 & 2.41 & 5.02 \\\hline
+2nd V + 1st H & 352.20 & 2.27 & 4.68 \\\hline
 \end{tabular}
 \end{center}
 \begin{figure}[H]
@@ -64,11 +67,11 @@ Basic & 160.32 & 1.03 & 2.04 \\\hline
 \begin{tabular}{|c|c|c|c|c|}
 \hline
 Algorithm & Precision & Recall & $F_1$ & Exact Match \\\hline
-Basic & 80.76 & 74.63 & 77.57 & 20.65\\\hline
-2nd Order Vertical & 82.82 & 78.60 & 80.66 & 31.61 \\\hline
-3rd Order Vertical & 83.74 & 84.23 & 83.98 & 38.06 \\\hline
-1st Order Horizontal & 82.82 & 82.28 & 82.55 & 31.61 \\\hline
-2nd V + 1st H & 83.31 & 83.46 & 83.39 & 33.55 \\\hline
+1st Order Vertical & 80.76 & 74.63 & 77.57 & 20.65\\\hline
+2nd Order Vertical & 83.64 & 79.73 & 81.64 & 31.61 \\\hline
+3rd Order Vertical & 82.13 & 82.28 & 82.20 & 36.13 \\\hline
+1st V + 1st H & 80.68 & 79.96 & 80.32 & 29.68 \\\hline
+2nd V + 1st H & 84,94 & 85.60 & 85.27 & 34.19 \\\hline
 \end{tabular}
 \end{center}
 \section{Extra Credit}
