@@ -40,11 +40,13 @@ There were many similar tweaks to the code. By intuition and also trial and erro
 \section{Adding Vertical Markovization}
 \subsection{2nd Order Vertical Markovization Implementation}
 We implemented vertical markovization to the unannotated tree in a recursive manner. Each node was passed in with the label of the parent node, and if the node is not a leaf, we update the new label to \texttt{childLabel \^\ parentLabel}. For \texttt{ROOT}, the parent label was an empty string.
-\subsection{Effect Analysis}
-As reported in the results section, adding 2nd order vertical markovization improved F1 score by \textbf{3\%} from 77.57 to 80.66. The number of exact match cases also increased by more than 10\%.
+\subsection{Markovization Effect Analysis}
+As reported in the results section, adding 2nd order vertical markovization improved F1 score by \textbf{4\%} from 77.57 to 81.64. The number of exact match cases also increased by more than 10\%.
 
 This improvement in results verified the points of integrating vertical markovization addressed in the \textit{Accurate Unlexicalized Parsing} paper. In the basic (1st order vertical) grammar, the cateogry symbols are too coarse to adequately render the expansions independent of the contexts. It is hard to differentiate various expansions from the same category without integrating ancestor labels.
 
+
+In the example above, the basic parser got 70.59 F1 score, but 2nd order VM got a perfect match. This was because 2nd order VM was able to caputre the vertical structure of the second sentece "said one major specialist" and treat "one major specialist" as a single \texttt{NP}. In contrast, 1st order VM was not able to differentiate \texttt{NP} and \texttt{NP \^\ VP} and thus treated "one" as \texttt{NP \^\ VP} by mistake.
 \section{Results}
 \subsection{Run Time}
 \begin{center}
@@ -71,7 +73,7 @@ Algorithm & Precision & Recall & $F_1$ & Exact Match \\\hline
 2nd Order Vertical & 83.64 & 79.73 & 81.64 & 31.61 \\\hline
 3rd Order Vertical & 82.13 & 82.28 & 82.20 & 36.13 \\\hline
 1st V + 1st H & 80.68 & 79.96 & 80.32 & 29.68 \\\hline
-2nd V + 1st H & 84,94 & 85.60 & 85.27 & 34.19 \\\hline
+2nd V + 1st H & 84,94 & 85.60 & \textbf{85.27} & 34.19 \\\hline
 \end{tabular}
 \end{center}
 \section{Extra Credit}
@@ -81,8 +83,14 @@ We implemented the 3rd order vertical markovization in a similar manner as the 2
 
 \texttt{childLabel \^\ parentLabel \^\ grandparentLabel}. 
 \subsubsection{Horizontal Markovization}
-We also implemented 1st order and 2nd order horizontal markovizations. For n-th order horizontal markovization, we kept track of the previous n sibling labels as the context. Horizontal contexts are marked with \texttt{\^\ @}.
+We also implemented 1st order and 2nd order horizontal markovizations. For n-th order horizontal markovization, we kept track of the previous n sibling labels as the context. Horizontal contexts were marked with \texttt{\^\ @}.
+
 \subsubsection{Combination And Results}
-We tried different combinations of vertical and horizontal markovizations and reported the results in the section above. 
+We tried different combinations of vertical and horizontal markovizations and reported the results in the section above. As expected, 3rd order vertical markovization improved results from 2nd order vertical. Adding horizontal markovization improved results in general. The combination of 2nd V and 1st H gave the best F1 score of \textbf{85.27}.
+
+However, we were not able to use 1st order horizonal with 3rd order vertical, or 2nd order horizontal at all. In those cases, the grammar became too complicated and sparse. We were not able to parse some of the test data because the grammars were never seen in training. If provided with more training data, we would expect to be able to run combinations of higher order markovizations.
+
+\section{Collaboration} 
+Jiaji focused on the parser implementation and optimization. Tong was foucused on markovization implementation and testing. We wrote the report together.
 
 \end{document}
