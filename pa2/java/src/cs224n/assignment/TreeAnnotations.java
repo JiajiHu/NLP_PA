@@ -17,18 +17,129 @@ import cs224n.util.Filter;
 public class TreeAnnotations {
 
 	public static Tree<String> annotateTree(Tree<String> unAnnotatedTree) {
+        /*
+        We implemented 2nd order vertical, 3rd order vertical, 1st order horizontal, 2nd order horizontal
+        markovization. By default, only 2nd order vertical markovization is enabled. To enable other markovizations,
+        uncomment the lines below. At most one markovization from each category can be enabled at the same time.
+        Note: H1Markovization does not work V3Markovization, and H2Markovization does not work because of sparsity.
+        Please refer to our report for more details.
+        */
 
-		// Currently, the only annotation done is a lossless binarization
+//        V2Markovization(unAnnotatedTree, "");
+//        V3Markovization(unAnnotatedTree, "", "");
 
-		// TODO: change the annotation from a lossless binarization to a
-		// finite-order markov process (try at least 1st and 2nd order)
+        H1Markovization(unAnnotatedTree, "");
+//        H2Markovization(unAnnotatedTree, "","");
 
-		// TODO : mark nodes with the label of their parent nodes, giving a second
-		// order vertical markov process
 
 		return binarizeTree(unAnnotatedTree);
 
 	}
+
+
+    private static void V2Markovization(Tree<String> unAnnotatedTree, String parentLabel) {
+        if (unAnnotatedTree.isLeaf()) {
+            return;
+        }
+        List<Tree<String>> children = unAnnotatedTree.getChildren();
+        String currentLabel = unAnnotatedTree.getLabel();
+        for (Tree<String> child : children) {
+            V2Markovization(child, currentLabel);
+        }
+        if (!parentLabel.isEmpty()) {
+            unAnnotatedTree.setLabel(currentLabel + "^" + parentLabel);
+        }
+    }
+
+
+    private static void V3Markovization(Tree<String> unAnnotatedTree, String parentLabel, String grandparentLabel) {
+        if (unAnnotatedTree.isLeaf()) {
+            return;
+        }
+        List<Tree<String>> children = unAnnotatedTree.getChildren();
+        String currentLabel = unAnnotatedTree.getLabel();
+        for (Tree<String> child : children) {
+            V3Markovization(child, currentLabel, parentLabel);
+        }
+        String newLabel = currentLabel;
+        if (!parentLabel.isEmpty()) {
+            newLabel += "^" + parentLabel;
+            if (!grandparentLabel.isEmpty()) {
+                newLabel += "^" + grandparentLabel;
+            }
+        }
+        unAnnotatedTree.setLabel(newLabel);
+    }
+
+
+    private static void H1Markovization(Tree<String> unAnnotatedTree, String context) {
+        if (unAnnotatedTree.isLeaf()) {
+            return;
+        }
+
+        List<Tree<String>> children = unAnnotatedTree.getChildren();
+        String currentLabel = unAnnotatedTree.getLabel();
+        String prevSiblingLabel = null;
+        for (Tree<String> child : children) {
+            String currentChildLabel = child.getLabel();
+            if (prevSiblingLabel == null) {
+                H1Markovization(child, "");
+            } else {
+                H1Markovization(child, markovStripper(prevSiblingLabel));
+            }
+            prevSiblingLabel = currentChildLabel;
+        }
+        String newLabel = currentLabel;
+        if (!context.isEmpty()) {
+            newLabel += "^@" + context;
+        }
+        unAnnotatedTree.setLabel(newLabel);
+    }
+
+    private static void H2Markovization(Tree<String> unAnnotatedTree, String context, String context2) {
+        if (unAnnotatedTree.isLeaf()) {
+            return;
+        }
+
+        List<Tree<String>> children = unAnnotatedTree.getChildren();
+        String currentLabel = unAnnotatedTree.getLabel();
+        String prevSiblingLabel = null;
+        String nextPrevSiblingLabel = null;
+        for (Tree<String> child : children) {
+            String currentChildLabel = child.getLabel();
+            if (prevSiblingLabel == null) {
+                H2Markovization(child, "","");
+            } else if (nextPrevSiblingLabel == null) {
+                H2Markovization(child, markovStripper(prevSiblingLabel), "");
+            } else {
+                H2Markovization(child, markovStripper(prevSiblingLabel), markovStripper(nextPrevSiblingLabel));
+            }
+            nextPrevSiblingLabel = prevSiblingLabel;
+            prevSiblingLabel = currentChildLabel;
+        }
+        String newLabel = currentLabel;
+        if (!context.isEmpty()) {
+            newLabel += "^@" + context;
+            if (!context2.isEmpty()) {
+                newLabel += "^@" + context2;
+            }
+        }
+
+        unAnnotatedTree.setLabel(newLabel);
+    }
+
+
+ 
+
+    private static String markovStripper(String markovizedLabel) {
+        String stripped = markovizedLabel;
+        int symbolIdx = markovizedLabel.indexOf("^");
+        if (symbolIdx > 0) {
+            stripped = markovizedLabel.substring(0, symbolIdx);
+        }
+        return stripped;
+    }
+
 
 	private static Tree<String> binarizeTree(Tree<String> tree) {
 		String label = tree.getLabel();
