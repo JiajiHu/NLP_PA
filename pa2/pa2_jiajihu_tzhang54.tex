@@ -38,6 +38,12 @@ Also, we looked at the \texttt{while(added)} loop given by the pseudocode in the
 
 There were many similar tweaks to the code. By intuition and also trial and error, we worked out what data structures and what code flow allowed the parser to run faster.
 \section{Adding Vertical Markovization}
+\subsection{2nd Order Vertical Markovization Implementation}
+We implemented vertical markovization to the unannotated tree in a recursive manner. Each node was passed in with the label of the parent node, and if the node is not a leaf, we update the new label to \texttt{childLabel \^\ parentLabel}. For \texttt{ROOT}, the parent label was an empty string.
+\subsection{Effect Analysis}
+As reported in the results section, adding 2nd order vertical markovization improved F1 score by \textbf{3\%} from 77.57 to 80.66. The number of exact match cases also increased by more than 10\%.
+
+This improvement in results verified the points of integrating vertical markovization addressed in the \textit{Accurate Unlexicalized Parsing} paper. In the basic (1st order vertical) grammar, the cateogry symbols are too coarse to adequately render the expansions independent of the contexts. It is hard to differentiate various expansions from the same category without integrating ancestor labels.
 
 \section{Results}
 \subsection{Run Time}
@@ -59,9 +65,21 @@ Basic & 160.32 & 1.03 & 2.04 \\\hline
 \hline
 Algorithm & Precision & Recall & $F_1$ & Exact Match \\\hline
 Basic & 80.76 & 74.63 & 77.57 & 20.65\\\hline
-
+2nd Order Vertical & 82.82 & 78.60 & 80.66 & 31.61 \\\hline
+3rd Order Vertical & 83.74 & 84.23 & 83.98 & 38.06 \\\hline
+1st Order Horizontal & 82.82 & 82.28 & 82.55 & 31.61 \\\hline
+2nd V + 1st H & 83.31 & 83.46 & 83.39 & 33.55 \\\hline
 \end{tabular}
 \end{center}
 \section{Extra Credit}
+\subsection{Higher Order Vertical And Horizontal Markovization}
+\subsubsection{3rd Order Vertical Markovization}
+We implemented the 3rd order vertical markovization in a similar manner as the 2nd order one. At each recursive call, the grandparent node label was also passed in addtion to the parent node label. The label for the current node was updated to
+
+\texttt{childLabel \^\ parentLabel \^\ grandparentLabel}. 
+\subsubsection{Horizontal Markovization}
+We also implemented 1st order and 2nd order horizontal markovizations. For n-th order horizontal markovization, we kept track of the previous n sibling labels as the context. Horizontal contexts are marked with \texttt{\^\ @}.
+\subsubsection{Combination And Results}
+We tried different combinations of vertical and horizontal markovizations and reported the results in the section above. 
 
 \end{document}
