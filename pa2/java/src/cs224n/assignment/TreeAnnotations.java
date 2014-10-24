@@ -27,7 +27,7 @@ public class TreeAnnotations {
 
        V2Markovization(unAnnotatedTree, "");
        // V3Markovization(unAnnotatedTree, "", "");
-//        H1Markovization(unAnnotatedTree, "");
+       // H1Markovization(unAnnotatedTree, "");
        // H2Markovization(unAnnotatedTree, "","");
 		return binarizeTree(unAnnotatedTree);
 
