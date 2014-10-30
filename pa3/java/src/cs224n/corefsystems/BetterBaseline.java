@@ -1,8 +1,6 @@
 package cs224n.corefsystems;
 
-import java.util.Collection;
-import java.util.List;
-import java.util.ArrayList;
+import java.util.*;
 
 
 import cs224n.coref.ClusteredMention;
@@ -12,28 +10,47 @@ import cs224n.util.Pair;
 
 public class BetterBaseline implements CoreferenceSystem {
 
+    private Set<Pair<String, String>> headWordPairSet;
+
 	@Override
 	public void train(Collection<Pair<Document, List<Entity>>> trainingData) {
-		// TODO Auto-generated method stub
+		headWordPairSet = new HashSet<Pair<String, String>>();
+        for(Pair<Document, List<Entity>> pair : trainingData){
+            List<Entity> clusters = pair.getSecond();
+
+            for (Entity cluster : clusters) {
+                for(Pair<Mention, Mention> mentionPair : cluster.orderedMentionPairs()) {
+                    Mention m1 = mentionPair.getFirst();
+                    Mention m2 = mentionPair.getSecond();
+                    String headWord1 = m1.headWord();
+                    String headWord2 = m2.headWord();
+                    Pair<String, String> headWordPair = new Pair<String, String>(headWord1, headWord2);
+                    headWordPairSet.add(headWordPair);
+                }
+
+            }
+
+        }
 
 	}
 
 	@Override
 	public List<ClusteredMention> runCoreference(Document doc) {
-		// TODO Auto-generated method stub
-	
-	ArrayList<ClusteredMention> clusters = new ArrayList<ClusteredMention>();
-	for (Mention m : doc.getMentions()) {
-        if (m.gloss().equals("God the Protector")) {
-        System.out.println(m.sentence.parse);
-	System.out.println(m.parse);
-        System.out.println(m.beginIndexInclusive + " "+m.endIndexExclusive);
-        System.out.println(m.gloss());
-}
-     clusters.add(m.markSingleton());
-}
+        List<ClusteredMention> clusteredMentions = new ArrayList<ClusteredMention>();
+        Map<String, Entity> headWordClusterMap = new HashMap<String, Entity>();
+        for(Mention m : doc.getMentions()){
+            String headWord = m.headWord();
+            if (headWordClusterMap.containsKey(headWord)) {
+                Entity cluster = headWordClusterMap.get(headWord);
+                clusteredMentions.add(m.markCoreferent(cluster));
+            } else {
+                Entity cluster = new Entity(new ArrayList<Mention>(), m);
+                clusteredMentions.add(m.markCoreferent(cluster));
+                headWordClusterMap.put(headWord, cluster);
+            }
 
-	return clusters;
-	}
+        }
+        return clusteredMentions;
+    }
 
 }
