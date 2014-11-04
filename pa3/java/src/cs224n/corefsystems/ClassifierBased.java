@@ -28,15 +28,47 @@ public class ClassifierBased implements CoreferenceSystem {
 	}
 
 	private static final Set<Object> ACTIVE_FEATURES = mkSet(new Object[]{
-
-			/*
-			 * TODO: Create a set of active features
-			 */
-
 			Feature.ExactMatch.class,
+			
+			/*  START: Deemed not useful */
+			
+			// Feature.MentionDistance.class,
+			// Feature.MentionDistanceSentence.class,
+			// Feature.FixedIsPronoun.class,
+			// Feature.CandidateIsPronoun.class,
+			// Feature.ContainsPronoun.class,
+			// Feature.FixedEntityType.class,
+			// Feature.CandidateEntityType.class,
+			// Feature.SameEntityType.class,
+			// Pair.make(Feature.MentionDistance.class, Feature.ContainsPronoun.class),
+			// Pair.make(Feature.MentionDistanceSentence.class, Feature.ContainsPronoun.class),
+			// Pair.make(Feature.FixedEntityType.class, Feature.CandidateEntityType.class),
+			
+			// Feature.NounPluralCompatible.class,
+			
+			// Feature.HeadWordSamePOS.class,
+			
+			/*  END: Deemed not useful */
+			
+			Pair.make(Feature.MentionDistanceSentence.class, Feature.FixedIsPronoun.class),
+			Pair.make(Feature.MentionDistanceSentence.class, Feature.CandidateIsPronoun.class),
+			
+			Feature.NamePronounGenderIncompatible.class,
+			Feature.NamePronounPluralIncompatible.class,
+			
+			Feature.NounPronounPluralCompatible.class,
+			// Feature.NounPronounPluralIncompatible.class,
+			
+			Feature.Pronoun2GenderCompatible.class,
+			Feature.Pronoun2PluralCompatible.class,
+			Feature.Pronoun2SpeakerCompatible.class,
+			// Feature.Pronoun2GenderIncompatible.class,
+			// Feature.Pronoun2PluralIncompatible.class,
+			// Feature.Pronoun2SpeakerIncompatible.class,
+			Feature.Pronoun2Incompatible.class,
 
-			//skeleton for how to create a pair feature
-			//Pair.make(Feature.IsFeature1.class, Feature.IsFeature2.class),
+			Feature.HeadWordSame.class,
+			// Feature.HeadWordSameLemma.class, // works well, but not as good as HeadWordSame
 	});
 
 
@@ -59,13 +91,204 @@ public class ClassifierBased implements CoreferenceSystem {
 			//--Features
 			if(clazz.equals(Feature.ExactMatch.class)){
 				//(exact string match)
-				return new Feature.ExactMatch(onPrix.gloss().equals(candidate.gloss()));
-//			} else if(clazz.equals(Feature.NewFeature.class) {
-				/*
-				 * TODO: Add features to return for specific classes. Implement calculating values of features here.
-				 */
-			}
-			else {
+				return new Feature.ExactMatch(
+					onPrix.gloss().equalsIgnoreCase(candidate.gloss()));
+
+			} else if(clazz.equals(Feature.MentionDistance.class)) {
+				// distance between mentions (measured in mentions)
+				return new Feature.MentionDistance(
+					onPrix.doc.indexOfMention(onPrix) - candidate.doc.indexOfMention(candidate));
+
+			} else if(clazz.equals(Feature.MentionDistanceSentence.class)) {
+				// distance between mentions (measured in sentences)
+				return new Feature.MentionDistanceSentence(
+					onPrix.doc.indexOfSentence(onPrix.sentence) - candidate.doc.indexOfSentence(candidate.sentence));			
+
+			} else if(clazz.equals(Feature.FixedIsPronoun.class)) {
+				// whether fixed is pronoun
+				return new Feature.FixedIsPronoun(Pronoun.isSomePronoun(onPrix.headWord()));
+
+			} else if(clazz.equals(Feature.CandidateIsPronoun.class)) {
+				// whether candidate is pronoun
+				return new Feature.CandidateIsPronoun(Pronoun.isSomePronoun(candidate.headWord()));
+
+			} else if(clazz.equals(Feature.ContainsPronoun.class)) {
+				// whether either fixed or candidate is pronoun
+				return new Feature.ContainsPronoun(
+					Pronoun.isSomePronoun(candidate.headWord()) || Pronoun.isSomePronoun(candidate.headWord()));
+
+			} else if(clazz.equals(Feature.FixedEntityType.class)) {
+				// NE type of fixed
+				return new Feature.FixedEntityType(onPrix.headToken().nerTag());	
+
+			} else if(clazz.equals(Feature.CandidateEntityType.class)) {
+				// NE type of candidate
+				return new Feature.CandidateEntityType(candidate.headToken().nerTag());	
+
+			} else if(clazz.equals(Feature.SameEntityType.class)) {
+				// whether NE type is same between fixed and candidate
+				// NOTE: so many "O" tags -- adding special case
+				int returnCode = 0;
+				if (onPrix.headToken().nerTag().equals("O")) {
+					returnCode = (candidate.headToken().nerTag().equals("O")) ? 0 : 1;
+				} else if (candidate.headToken().nerTag().equals("O")){
+					returnCode = 1;
+				} else {
+					returnCode = (onPrix.headToken().nerTag().equals(candidate.headToken().nerTag())) ? 3 : 2;
+				}
+				return new Feature.SameEntityType(returnCode);	
+
+			} else if(clazz.equals(Feature.NamePronounGenderIncompatible.class)) {
+				boolean nameProGenderComp = true;
+				if (Name.isName(onPrix.headWord()) && Pronoun.valueOrNull(candidate.headWord()) != null) {
+					if (Name.mostLikelyGender(onPrix.headWord()).isCompatible(
+						Pronoun.valueOrNull(candidate.headWord()).gender)) {
+						nameProGenderComp = true;
+					} else {
+						nameProGenderComp = false;
+					}
+				} else if (Name.isName(candidate.headWord()) && Pronoun.valueOrNull(onPrix.headWord()) != null) {
+					if (Name.mostLikelyGender(candidate.headWord()).isCompatible(
+						Pronoun.valueOrNull(onPrix.headWord()).gender)) {
+						nameProGenderComp = true;
+					} else {
+						nameProGenderComp = false;
+					}
+				}
+				return new Feature.NamePronounGenderIncompatible(nameProGenderComp);
+
+			} else if(clazz.equals(Feature.NamePronounPluralIncompatible.class)) {
+				boolean nameProPluralComp = true;
+				if (Name.isName(onPrix.headWord()) && Pronoun.valueOrNull(candidate.headWord()) != null) {
+					if (Pronoun.valueOrNull(candidate.headWord()).plural) {
+						nameProPluralComp = false;
+					}
+				} else if (Name.isName(candidate.headWord()) && Pronoun.valueOrNull(onPrix.headWord()) != null) {
+					if (Pronoun.valueOrNull(onPrix.headWord()).plural) {
+						nameProPluralComp = false;
+					}
+				}
+				return new Feature.NamePronounPluralIncompatible(nameProPluralComp);
+			
+			} else if(clazz.equals(Feature.NounPluralCompatible.class)) {
+				boolean nounPluralComp = false;
+				if (onPrix.headToken().isPluralNoun() && candidate.headToken().isPluralNoun()) {
+					nounPluralComp = true;
+				}
+				return new Feature.NounPluralCompatible(nounPluralComp);
+
+			} else if(clazz.equals(Feature.NounPronounPluralCompatible.class)) {
+				boolean nounProPluralComp = false;
+				if (onPrix.headToken().isPluralNoun() && Pronoun.valueOrNull(candidate.headWord()) != null) {
+					if (Pronoun.valueOrNull(candidate.headWord()).plural) {
+						nounProPluralComp = true;
+					}
+				} else if (candidate.headToken().isPluralNoun() && Pronoun.valueOrNull(onPrix.headWord()) != null) {
+					if (Pronoun.valueOrNull(onPrix.headWord()).plural) {
+						nounProPluralComp = true;
+					}
+				}
+				return new Feature.NounPronounPluralCompatible(nounProPluralComp);
+
+			} else if(clazz.equals(Feature.NounPronounPluralIncompatible.class)) {
+				boolean nounProPluralComp = true;
+				if (onPrix.headToken().isPluralNoun() && Pronoun.valueOrNull(candidate.headWord()) != null) {
+					if (!Pronoun.valueOrNull(candidate.headWord()).plural) {
+						nounProPluralComp = false;
+					}
+				} else if (candidate.headToken().isPluralNoun() && Pronoun.valueOrNull(onPrix.headWord()) != null) {
+					if (!Pronoun.valueOrNull(onPrix.headWord()).plural) {
+						nounProPluralComp = false;
+					}
+				}
+				return new Feature.NounPronounPluralIncompatible(nounProPluralComp);
+
+			} else if(clazz.equals(Feature.Pronoun2GenderCompatible.class)) {
+				boolean proGenderComp = false;
+				if (Pronoun.valueOrNull(onPrix.headWord()) != null && Pronoun.valueOrNull(candidate.headWord()) != null) {
+					if (Pronoun.valueOrNull(onPrix.headWord()).gender.isCompatible(
+						Pronoun.valueOrNull(candidate.headWord()).gender)) {
+						proGenderComp = true;
+					}
+				}
+				return new Feature.Pronoun2GenderCompatible(proGenderComp);
+
+			} else if(clazz.equals(Feature.Pronoun2GenderIncompatible.class)) {
+				boolean proGenderComp = true;
+				if (Pronoun.valueOrNull(onPrix.headWord()) != null && Pronoun.valueOrNull(candidate.headWord()) != null) {
+					if (!Pronoun.valueOrNull(onPrix.headWord()).gender.isCompatible(
+						Pronoun.valueOrNull(candidate.headWord()).gender)) {
+						proGenderComp = false;
+					}
+				}
+				return new Feature.Pronoun2GenderIncompatible(proGenderComp);	
+
+			} else if(clazz.equals(Feature.Pronoun2PluralCompatible.class)) {
+				boolean proPluralComp = false;
+				if (Pronoun.valueOrNull(onPrix.headWord()) != null && Pronoun.valueOrNull(candidate.headWord()) != null) {
+					if (Pronoun.valueOrNull(onPrix.headWord()).plural ==
+						Pronoun.valueOrNull(candidate.headWord()).plural) {
+						proPluralComp = true;
+					}
+				}
+				return new Feature.Pronoun2PluralCompatible(proPluralComp);
+
+			} else if(clazz.equals(Feature.Pronoun2PluralIncompatible.class)) {
+				boolean proPluralComp = true;
+				if (Pronoun.valueOrNull(onPrix.headWord()) != null && Pronoun.valueOrNull(candidate.headWord()) != null) {
+					if (Pronoun.valueOrNull(onPrix.headWord()).plural !=
+						Pronoun.valueOrNull(candidate.headWord()).plural) {
+						proPluralComp = false;
+					}
+				}
+				return new Feature.Pronoun2PluralIncompatible(proPluralComp);
+
+			} else if(clazz.equals(Feature.Pronoun2SpeakerCompatible.class)) {
+				boolean proSpeakerComp = false;
+				if (Pronoun.valueOrNull(onPrix.headWord()) != null && Pronoun.valueOrNull(candidate.headWord()) != null) {
+					if (Pronoun.valueOrNull(onPrix.headWord()).speaker ==
+						Pronoun.valueOrNull(candidate.headWord()).speaker) {
+						proSpeakerComp = true;
+					}
+				}
+				return new Feature.Pronoun2SpeakerCompatible(proSpeakerComp);	
+
+			} else if(clazz.equals(Feature.Pronoun2SpeakerIncompatible.class)) {
+				boolean proSpeakerComp = true;
+				if (Pronoun.valueOrNull(onPrix.headWord()) != null && Pronoun.valueOrNull(candidate.headWord()) != null) {
+					if (Pronoun.valueOrNull(onPrix.headWord()).speaker !=
+						Pronoun.valueOrNull(candidate.headWord()).speaker) {
+						proSpeakerComp = false;
+					}
+				}
+				return new Feature.Pronoun2SpeakerIncompatible(proSpeakerComp);
+
+			} else if(clazz.equals(Feature.Pronoun2Incompatible.class)) {
+				boolean proComp = true;
+				if (Pronoun.valueOrNull(onPrix.headWord()) != null && Pronoun.valueOrNull(candidate.headWord()) != null) {
+					if (!Pronoun.valueOrNull(onPrix.headWord()).gender.isCompatible(
+						Pronoun.valueOrNull(candidate.headWord()).gender)) {
+						proComp = false;
+					} else if (Pronoun.valueOrNull(onPrix.headWord()).plural !=
+						Pronoun.valueOrNull(candidate.headWord()).plural) {
+						proComp = false;
+					} else if (Pronoun.valueOrNull(onPrix.headWord()).speaker !=
+						Pronoun.valueOrNull(candidate.headWord()).speaker) {
+						proComp = false;
+					}
+				}
+				return new Feature.Pronoun2Incompatible(proComp);
+
+			} else if(clazz.equals(Feature.HeadWordSame.class)) {
+				return new Feature.HeadWordSame(onPrix.headWord().equalsIgnoreCase(candidate.headWord()));
+			
+			} else if(clazz.equals(Feature.HeadWordSameLemma.class)) {
+				return new Feature.HeadWordSameLemma(onPrix.headToken().lemma().equalsIgnoreCase(candidate.headToken().lemma()));
+
+			} else if(clazz.equals(Feature.HeadWordSamePOS.class)) {
+				return new Feature.HeadWordSamePOS(onPrix.headToken().posTag().equals(candidate.headToken().posTag()));
+			
+			} else {
 				throw new IllegalArgumentException("Unregistered feature: " + clazz);
 			}
 		}

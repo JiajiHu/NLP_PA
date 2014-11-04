@@ -101,8 +101,95 @@ public interface Feature {
     public ExactMatch(boolean exactMatch){ super(exactMatch); }
   }
   
-  /*
-   * TODO: Add values to the indicators here.
-   */
+  public static class MentionDistance extends IntIndicator {
+    public MentionDistance(int mentionDist){ super(mentionDist); }
+  }
 
+  public static class MentionDistanceSentence extends IntIndicator {
+    public MentionDistanceSentence(int mentionDistSen){ super(mentionDistSen); }
+  }
+  
+  public static class FixedIsPronoun extends Indicator {
+    public FixedIsPronoun(boolean isPronoun){ super(isPronoun); }
+  }
+  
+  public static class CandidateIsPronoun extends Indicator {
+    public CandidateIsPronoun(boolean isPronoun){ super(isPronoun); }
+  }
+  
+  public static class ContainsPronoun extends Indicator {
+    public ContainsPronoun(boolean containsPronoun){ super(containsPronoun); }
+  }
+  
+  public static class FixedEntityType extends StringIndicator {
+    public FixedEntityType(String fixedEntity){ super(fixedEntity); }
+  }
+
+  public static class CandidateEntityType extends StringIndicator {
+    public CandidateEntityType(String candEntity){ super(candEntity); }
+  }  
+
+  public static class SameEntityType extends IntIndicator {
+    public SameEntityType(int code){ super(code); }
+  }
+  
+  public static class NamePronounGenderIncompatible extends Indicator {
+    public NamePronounGenderIncompatible(boolean compatible){ super(compatible); }
+  }
+
+  public static class NamePronounPluralIncompatible extends Indicator {
+    public NamePronounPluralIncompatible(boolean compatible){ super(compatible); }
+  }
+
+  public static class NounPronounPluralCompatible extends Indicator {
+    public NounPronounPluralCompatible(boolean compatible){ super(compatible); }
+  }
+
+  public static class NounPronounPluralIncompatible extends Indicator {
+    public NounPronounPluralIncompatible(boolean compatible){ super(compatible); }
+  }
+
+  public static class NounPluralCompatible extends Indicator {
+    public NounPluralCompatible(boolean compatible){ super(compatible); }
+  }
+
+  public static class Pronoun2GenderCompatible extends Indicator {
+    public Pronoun2GenderCompatible(boolean compatible){ super(compatible); }
+  }
+
+  public static class Pronoun2GenderIncompatible extends Indicator {
+    public Pronoun2GenderIncompatible(boolean compatible){ super(compatible); }
+  }
+
+  public static class Pronoun2PluralCompatible extends Indicator {
+    public Pronoun2PluralCompatible(boolean compatible){ super(compatible); }
+  }
+  
+  public static class Pronoun2PluralIncompatible extends Indicator {
+    public Pronoun2PluralIncompatible(boolean compatible){ super(compatible); }
+  }
+
+  public static class Pronoun2SpeakerCompatible extends Indicator {
+    public Pronoun2SpeakerCompatible(boolean compatible){ super(compatible); }
+  }
+
+  public static class Pronoun2SpeakerIncompatible extends Indicator {
+    public Pronoun2SpeakerIncompatible(boolean compatible){ super(compatible); }
+  }
+
+  public static class Pronoun2Incompatible extends Indicator {
+    public Pronoun2Incompatible(boolean compatible){ super(compatible); }
+  }
+
+  public static class HeadWordSame extends Indicator {
+    public HeadWordSame(boolean same){ super(same); }
+  }
+
+  public static class HeadWordSameLemma extends Indicator {
+    public HeadWordSameLemma(boolean same){ super(same); }
+  }
+
+  public static class HeadWordSamePOS extends Indicator {
+    public HeadWordSamePOS(boolean same){ super(same); }
+  }
 }
