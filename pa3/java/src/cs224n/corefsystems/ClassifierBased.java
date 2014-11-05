@@ -69,6 +69,7 @@ public class ClassifierBased implements CoreferenceSystem {
 
 			Feature.HeadWordSame.class,
 			// Feature.HeadWordSameLemma.class, // works well, but not as good as HeadWordSame
+
 	});
 
 
@@ -141,17 +142,13 @@ public class ClassifierBased implements CoreferenceSystem {
 			} else if(clazz.equals(Feature.NamePronounGenderIncompatible.class)) {
 				boolean nameProGenderComp = true;
 				if (Name.isName(onPrix.headWord()) && Pronoun.valueOrNull(candidate.headWord()) != null) {
-					if (Name.mostLikelyGender(onPrix.headWord()).isCompatible(
+					if (! Name.mostLikelyGender(onPrix.headWord()).isCompatible(
 						Pronoun.valueOrNull(candidate.headWord()).gender)) {
-						nameProGenderComp = true;
-					} else {
 						nameProGenderComp = false;
 					}
 				} else if (Name.isName(candidate.headWord()) && Pronoun.valueOrNull(onPrix.headWord()) != null) {
-					if (Name.mostLikelyGender(candidate.headWord()).isCompatible(
+					if (! Name.mostLikelyGender(candidate.headWord()).isCompatible(
 						Pronoun.valueOrNull(onPrix.headWord()).gender)) {
-						nameProGenderComp = true;
-					} else {
 						nameProGenderComp = false;
 					}
 				}
