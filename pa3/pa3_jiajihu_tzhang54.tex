@@ -14,8 +14,19 @@ Name: Tong Zhang, Jiaji Hu
 \end{center}]
 
 \section{Naive Baselines}
+\subsection{All Singleton}
+In the all singleton naive baseline implementation, we simply iterated over all mentions and created a singleton entity for each mention. Each mention was marked coreferent with its own singleton entity.
+
+\subsection{One Cluster}
+In the one cluster naive baseline implementation, we created an entity at the very beginning. When we iterated over the mentions, we marked each mention as coreferent with the same entity.
+
+\subsection{MUC Analysis}
+The all singleton baseline got 100\% MUC precision but 0 MUC recall. On the other hand, the one cluster baseline got 100\% MUC recall but a lower MUC precision. This behavior made sense according to the definition of MUC. In all singleton baseline, each mention was clustered to it self, so there was never a wrong clustering. However, since the actual clustering did not include singletons, it was not able to capture any of the correct ones either, leading to a zero recall. One cluster baseline clustered all mentions together, so all pairs of mentions were connected by some edges, leading to a 100\% recall. The precision was low because some irrelevant mentions were clustered.
 
 \section{Better Baseline}
+Our baseline implementation was based on head words of the mentions. We decided to use head words because from the experiments we found that they were a very strong indicator of the clustering.
+ In training, we iterated over all pairs of mentions that were clustered together and recorded their head words in a set. 
+For test mentions, we checked if the pair of head words of two mentions had appeared in the training data. If the pair did appear in training, we would cluster the two mentions together.
 
 \section{Rule Based}
 
