@@ -1,18 +1,66 @@
-\documentclass[12pt]{article}
-\usepackage{fullpage,enumerate,amsmath,amssymb,graphicx, float, fancyvrb}
+\documentclass[12pt, twocolumn]{article}
+\usepackage{fullpage,enumerate,amsmath,amssymb,graphicx, float, lipsum}
 
 \begin{document}
+\twocolumn[
 \begin{center}
-{\Large CS224N Fall 2014 Programming Assignment 3}
+{\Large CS224n Fall 2014 Programming Assignment 1}
 \vspace{12pt}
 
 SUNet ID: tzhang54, jiajihu
 
 Name: Tong Zhang, Jiaji Hu
 \vspace{12pt}
-\end{center}
+\end{center}]
+
+\section{Naive Baselines}
+
+\section{Better Baseline}
+
+\section{Rule Based}
 
 \section{Classifier Based}
+\subsection{Overview}
+
+\subsection{Feature Engineering}
+\subsubsection{Feature Design Process}
+
+In the end, our system uses following features:
+\begin{enumerate}[(1)]
+\item 
+\end{enumerate}
+\subsubsection{Statistics}
+Table~\ref{tab:features} shows some statistics of the classifier-based system on the development set using different feature combinations:
+\begin{table}[H]
+\begin{center}
+\begin{tabular}{|c|c|c|}
+\hline
+Features & MUC F1 & B3 F1\\\hline
+\end{tabular}
+\end{center}
+\caption{Results over feature combinations}
+\label{tab:features}
+\end{table}
+\subsection{Error Analysis}
+
+\section{Results}
+The results for this assignment are shown in Table~\ref{tab:results}. As you can see, ...............
+\begin{table}[b]
+\begin{minipage}{\textwidth}
+\centering
+\begin{tabular}{l|c c c|c c c}
+\hline
+& & MUC & & & B3 & \\
+Algorithm & Prec & Recall & F1 & Prec & Recall & F1 \\\hline
+Rule-based & 0 & 0 & 0 & 0 & 0 & 0\\\hline  
+Classifier-based & 0 & 0 & 0 & 0 & 0 & 0\\\hline
+\end{tabular}
+\caption{Results for all systems}\label{tab:results}
+\end{minipage}
+\end{table}
+
+
+\section{Extra Credit}
 
 \section{Collaboration} 
 
