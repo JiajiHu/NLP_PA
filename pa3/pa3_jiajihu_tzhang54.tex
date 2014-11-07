@@ -4,7 +4,7 @@
 \begin{document}
 \twocolumn[
 \begin{center}
-{\Large CS224n Fall 2014 Programming Assignment 1}
+{\Large CS224n Fall 2014 Programming Assignment 3}
 \vspace{12pt}
 
 SUNet ID: tzhang54, jiajihu
@@ -21,13 +21,34 @@ Name: Tong Zhang, Jiaji Hu
 
 \section{Classifier Based}
 \subsection{Overview}
-
+The classifier based system uses a set of positive and negative examples of coreferent pairs to train a maxent classifier. Every training example consists of a pair of mentions and a label of whether they are coreferent. For this part, we went along with only using the most recent coreferent mention as a positive example, and using only intervening mentions as negative examples. 
 \subsection{Feature Engineering}
 \subsubsection{Feature Design Process}
+For this part, we looked into features that we thought were relevant to classification. After we implement and test a feature, we look at the results and make modifications or extensions to make it better. Our feature design process is as follows:
 
-In the end, our system uses following features:
+First, we looked at the distance between the candidate mentions. Intuitively, coreferent mentions should be closer rather than further away. However, it turned out that neither the distance in terms of mentions or in terms of sentences improved the performance. In retrospect, this may be because of the way we are creating our examples. Our negative examples are all ones that are closer than the positive example for that mention. Therefore, the information is rather minimal.
+
+Next, we moved on to pronouns. Intuitively this alone does not bring much information, and the results agreed with our expectation. However, we came up with the idea that if one of the mentions is a pronoun, it may be more interesting to see if they are close together. By pairing up the mention distance and the pronoun indicators, we got a slight increase in F1 score.
+
+After that, as suggested by the guidelines, we investigated the named entity type of the fixed and candidate mentions. After experimenting with the type, or whether they are the same, we concluded that this was not an impactful feature.
+
+Then, we looked into using the head word of the mentions. This turned out to be a high impact feature. By adding an indicator to see if the head words were a match, we immediately got a significant increase in score. We also looked at the lemma of the headword, which was also a good feature, but it was overlapped with the headword feature.
+
+Finally, we looked at gender, speaker and plural compatibility. For gender and plural, we looked at the case of one mention being a name or noun and the other being a pronoun, or both mentions being pronouns. For the speaker, we only look at pronouns. Also, there is a decision of whether we want a positive indicator for the two mentions being compatible, or a negative indicator for the two mentions being incompatible. As it turns out, both are good features, and their effects do not overlap. In addition, aggregating the three negative indicator features into one feature gave the same performance.
+
+In the end, our system uses the following:
 \begin{enumerate}[(1)]
-\item 
+\item Exact match (case insensitive)
+\item Pair(Mention dist, Fixed is pronoun) 
+\item Pair(Mention dist, Cand. is pronoun) 
+\item Name-Pronoun gender incompatible
+\item Name-Pronoun plural incompatible
+\item Noun-Pronoun incompatible
+\item Pronoun-Pronoun gender compatible
+\item Pronoun-Pronoun plural compatible
+\item Pronoun-Pronoun speaker compatible
+\item Pronoun-Pronoun incompatible
+\item Headword is same
 \end{enumerate}
 \subsubsection{Statistics}
 Table~\ref{tab:features} shows some statistics of the classifier-based system on the development set using different feature combinations:
@@ -36,13 +57,22 @@ Table~\ref{tab:features} shows some statistics of the classifier-based system on
 \begin{tabular}{|c|c|c|}
 \hline
 Features & MUC F1 & B3 F1\\\hline
+1 & 0.642 & 0.601 \\\hline
+1,2,3,4,5,6 & 0.690 & 0.639\\\hline
+1,2,3,7,8,9 & 0.672 & 0.636\\\hline
+1,2,3,10 & 0.678 & 0.641 \\\hline
+1,2,3,4-10 & 0.731 & 0.688 \\\hline
+1,11 & 0.707 & 0.645 \\\hline
+All & 0.792 & 0.721 \\\hline
 \end{tabular}
 \end{center}
 \caption{Results over feature combinations}
 \label{tab:features}
 \end{table}
 \subsection{Error Analysis}
-
+characterizing systematic mistakes the system makes. You should describe how these features
+would be fixed, either with more features (and if so, whatwould they be?), or note that they cannot be easily captured
+in our framework.
 \section{Results}
 The results for this assignment are shown in Table~\ref{tab:results}. As you can see, ...............
 \begin{table}[b]
