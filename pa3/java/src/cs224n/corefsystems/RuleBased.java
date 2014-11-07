@@ -35,6 +35,7 @@ public class RuleBased implements CoreferenceSystem {
             }
 //            System.out.println("NER Tag: " + m.headWord() + " " + m.headToken().nerTag());
 //            System.out.println("Mention Parse: " + m.parse);
+//            System.out.println("Quoted: " + m.headToken().isQuoted() + " Speaker: " + m.headToken().speaker());
         }
 
         // Pronoun Match
@@ -128,17 +129,31 @@ public class RuleBased implements CoreferenceSystem {
                     continue;
                 }
 
+                if (m1.headToken().isQuoted() && m2.headToken().isQuoted()) {
+                    if (!m1.headToken().speaker().equals(m2.headToken().speaker())) {
+                        continue;
+                    }
+                } else if (m1.headToken().isQuoted() || m2.headToken().isQuoted()) {
+                    continue;
+                }
+
                 if (pronoun1.gender == pronoun2.gender
                         && pronoun1.speaker == pronoun2.speaker
                         && pronoun1.plural == pronoun2.plural) {
                     if (pronoun1.speaker != Pronoun.Speaker.THIRD_PERSON) {
                         return true;
                     } else {
-                        int index1 = m1.doc.indexOfSentence(m1.sentence);
-                        int index2 = m2.doc.indexOfSentence(m2.sentence);
-                        if (Math.abs(index1 - index2) <= 2) {
+                        int sentIdx1 = m1.doc.indexOfSentence(m1.sentence);
+                        int sentIdx2 = m2.doc.indexOfSentence(m2.sentence);
+                        int mentionIdx1 = m1.doc.indexOfMention(m1);
+                        int mentionIdx2 = m2.doc.indexOfMention(m2);
+                        if (Math.abs(sentIdx1 - sentIdx2) <= 2) {
                             return true;
                         }
+//                        if (Math.abs(mentionIdx1 - mentionIdx2) <= 10 ||
+//                                Math.abs(sentIdx1 - sentIdx2) <= 2) {
+//                            return true;
+//                        }
                     }
                 }
             }
@@ -153,12 +168,24 @@ public class RuleBased implements CoreferenceSystem {
                 continue;
             }
             int pronounSentIdx = pronounMention.doc.indexOfSentence(pronounMention.sentence);
+            int pronounMentionIdx = pronounMention.doc.indexOfMention(pronounMention);
             if (pronoun.speaker == Pronoun.Speaker.THIRD_PERSON) {
                 for (Mention mention : mentionGroup) {
+
+                    if (pronounMention.headToken().isQuoted() && mention.headToken().isQuoted()) {
+                        if (!pronounMention.headToken().speaker().equals(mention.headToken().speaker())) {
+                            continue;
+                        }
+                    } else if (pronounMention.headToken().isQuoted() || mention.headToken().isQuoted()) {
+                        continue;
+                    }
+
                     if (mention.headToken().isNoun()) {
                         int mentionSentIdx = mention.doc.indexOfSentence(mention.sentence);
+                        int mentionIdx = mention.doc.indexOfMention(mention);
                         if ( pronoun.plural == mention.headToken().isPluralNoun()
-                                && Math.abs(pronounSentIdx - mentionSentIdx) <= 2 ) {
+                                && mentionIdx < pronounMentionIdx
+                                && Math.abs(mentionSentIdx - pronounSentIdx) <= 2) {
                             return true;
                         }
                     }
