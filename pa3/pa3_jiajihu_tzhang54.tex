@@ -34,22 +34,48 @@ For test mentions, we checked if the pair of head words of two mentions had appe
 \subsection{Overview}
 The classifier based system uses a set of positive and negative examples of coreferent pairs to train a maxent classifier. Every training example consists of a pair of mentions and a label of whether they are coreferent. For this part, we went along with only using the most recent coreferent mention as a positive example, and using only intervening mentions as negative examples. 
 \subsection{Feature Engineering}
-\subsubsection{Feature Design Process}
-For this part, we looked into features that we thought were relevant to classification. After we implement and test a feature, we look at the results and make modifications or extensions to make it better. Our feature design process is as follows:
+\subsubsection{Feature Design Process and\\ Error analysis}
+For this part, we looked into features that we thought were relevant to classification. After we implement and test a feature, we look at the results, do error analysis and make modifications or extensions to make it better. Our feature design process was as follows:
 
-First, we looked at the distance between the candidate mentions. Intuitively, coreferent mentions should be closer rather than further away. However, it turned out that neither the distance in terms of mentions or in terms of sentences improved the performance. In retrospect, this may be because of the way we are creating our examples. Our negative examples are all ones that are closer than the positive example for that mention. Therefore, the information is rather minimal.
+To start, we only had the exact match feature. We were obviously bound to miss a lot of information using only this feature. 
 
-Next, we moved on to pronouns. Intuitively this alone does not bring much information, and the results agreed with our expectation. However, we came up with the idea that if one of the mentions is a pronoun, it may be more interesting to see if they are close together. By pairing up the mention distance and the pronoun indicators, we got a slight increase in F1 score.
+Looking at the actual output of the system, things were as expected. For example, all mentions ``Hezbollah'' were put in the same cluster due to the exact match feature. However, the system was making mistakes even where the mentions were pretty much the same, but had just a little difference like an extra ``the''. For example: \texttt{{the strikes} -->  !{strikes}; !{these strikes}}
+
+From that, we had the idea to use the head word of the mentions. This turned out to be a high impact feature. By adding an indicator to see if the head words were a match, we immediately got a significant increase in score (MUC 0.70, B3 0.64). We also looked at the lemma of the headword, which was also a good feature, but it was overlapped with the headword feature.
+
+With that feature, we saw that \texttt{{the strikes} -->  {strikes}; {these strikes}}, so that error case was solved. 
+
+However, there was still much to improve. We note that out system had 0.80+ precision but recall only around 0.6, which means we still don't have enough features to identify good coreference pairs. We thought that intuitively, coreferent mentions should be closer rather than further away. For example, there was a sentence: \texttt{since \{{the majority of strikers\}} are jobless and {\{they\}} have found...}, and we were not putting the two mentions in the same cluster. To try to solve this, we added mention distance as a feature.
+
+However, it turned out that neither the distance in terms of mentions or in terms of sentences improved the performance. In retrospect, this may be because of the way we are creating our examples. Our negative examples are all ones that are closer than the positive example for that mention. Therefore, the information is rather minimal.
+
+To improve on this, we observe that in many of these cases, one of the mentions is a pronoun. It makes sense that if one mention is a pronoun (such as ``they'' in our error example), mention distance may be more relevant. By pairing up the mention distance and the pronoun indicators, we got a slight increase in F1 score.
 
 After that, as suggested by the guidelines, we investigated the named entity type of the fixed and candidate mentions. After experimenting with the type, or whether they are the same, we concluded that this was not an impactful feature.
 
-Then, we looked into using the head word of the mentions. This turned out to be a high impact feature. By adding an indicator to see if the head words were a match, we immediately got a significant increase in score. We also looked at the lemma of the headword, which was also a good feature, but it was overlapped with the headword feature.
+At this point, we still had the problem of high precision and low recall -- we weren't extracting enough information.
 
-Finally, we looked at gender, speaker and plural compatibility. For gender and plural, we looked at the case of one mention being a name or noun and the other being a pronoun, or both mentions being pronouns. For the speaker, we only look at pronouns. Also, there is a decision of whether we want a positive indicator for the two mentions being compatible, or a negative indicator for the two mentions being incompatible. As it turns out, both are good features, and their effects do not overlap. In addition, aggregating the three negative indicator features into one feature gave the same performance.
+We came across some interesting error cases that suggested that we could look at gender, speaker and plural compatibility:
+
+\texttt{are \{{five members\}} , for example , so \{{they\}} will ... for \{{them\}} that \{{they\}} would not get}
+
+For this example, our system clusters the two ``they''s, but misses the other two. However, we see that these are all plural.
+
+\texttt{part of {\{Hezbollah\}} and {\{its}\} supporters ... strength of \{{this organization}\}}
+
+For this example, all three were put in different clusters. However, we see that the plural and speaker features would have helped here.
+
+Therefore, we added gender and plural features for the case of one mention being a name or noun and the other being a pronoun, or both mentions being pronouns. For the speaker, we only look at pronouns. Also, there is a decision of whether we want a positive indicator for the two mentions being compatible, or a negative indicator for the two mentions being incompatible. Intuitively, the positive feature is good for increasing recall, and the negative feature is good for improving precision.
+
+As it turns out, both are good features, and their effects do not overlap. In addition, aggregating the three negative indicator features into one feature gave the same performance.
+
+With the plural, gender and speaker features, our system was able to get right all four mentions in the first error example.
+It was also able to correctly cluster \texttt{\{its\}} with \texttt{\{Hezbollah\}} for the second error example, so our features really had the expected effect on improving performance.
 
 In the end, our system uses the following:
 \begin{enumerate}[(1)]
 \item Exact match (case insensitive)
+\item Headword is same
 \item Pair(Mention dist, Fixed is pronoun) 
 \item Pair(Mention dist, Cand. is pronoun) 
 \item Name-Pronoun gender incompatible
@@ -59,7 +85,6 @@ In the end, our system uses the following:
 \item Pronoun-Pronoun plural compatible
 \item Pronoun-Pronoun speaker compatible
 \item Pronoun-Pronoun incompatible
-\item Headword is same
 \end{enumerate}
 \subsubsection{Statistics}
 Table~\ref{tab:features} shows some statistics of the classifier-based system on the development set using different feature combinations:
@@ -69,18 +94,17 @@ Table~\ref{tab:features} shows some statistics of the classifier-based system on
 \hline
 Features & MUC F1 & B3 F1\\\hline
 1 & 0.642 & 0.601 \\\hline
-1,2,3,4,5,6 & 0.690 & 0.639\\\hline
-1,2,3,7,8,9 & 0.672 & 0.636\\\hline
-1,2,3,10 & 0.678 & 0.641 \\\hline
-1,2,3,4-10 & 0.731 & 0.688 \\\hline
-1,11 & 0.707 & 0.645 \\\hline
+1,2 & 0.707 & 0.645 \\\hline
+1,2,3,4,5-7 & 0.755 & 0.679\\\hline
+1,2,3,4,8-10 & 0.740 & 0.678\\\hline
+1,2,3,4,11 & 0.743 & 0.684 \\\hline
 All & 0.792 & 0.721 \\\hline
 \end{tabular}
 \end{center}
 \caption{Results over feature combinations}
 \label{tab:features}
 \end{table}
-\subsection{Error Analysis}
+\subsubsection{Final errors and future\\ improvements}
 characterizing systematic mistakes the system makes. You should describe how these features
 would be fixed, either with more features (and if so, whatwould they be?), or note that they cannot be easily captured
 in our framework.
