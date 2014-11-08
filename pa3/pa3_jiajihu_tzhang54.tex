@@ -29,6 +29,36 @@ Our baseline implementation was based on head words of the mentions. We decided 
 For test mentions, we checked if the pair of head words of two mentions had appeared in the training data. If the pair did appear in training, we would cluster the two mentions together.
 
 \section{Rule Based}
+\subsection{Overview}
+In our rule-based implementation, there was no training process. All the clustering happened under our control flow. 
+We first iterated over all mentions and created a Set<Mention> containing only the mention itself. Then we iterated over the sets multiple times. Each time we would apply a new rule. Based on the rule we would decide whether two sets should be merged. If yes, we combined the two sets into a larger set. The order we applied the rules was from the high-precision low-recall rules to the low-precision high-recall ones. 
+At the end of the flow, we iterated over all the remaining set of mentions and clustered all mentions from the same set.
+
+\subsection{Rules}
+After experiments, the final rules we applied were the following (in order):
+
+\subsubsection{Pronouns Matching}
+In our first pass over all the mentions, we checked if the head word of a mention was a pronoun. If it was a pronoun, put the mention in a separate set.
+Our first rule was to cluster pronouns that possibly refer to the same noun. Given two pronouns, we first checked if the mentions were quoted. If only one of the mentions was quoted, then they were not clustered. If neither or both of them were quoted and had the same speaker, we proceeded to the next step. In the next step, we checked if the pronouns had the consistent gender, pluarity, and speaker. Next, if the two pronouns were both first or second person pronouns, we clustered them together since it was likely that "I", "You" from the same document refer to the same person. If the pronouns were both third person, we looked at their sentence indices. If the difference of the sentence indices was within 2, we clustered the pronouns. 
+
+\subsubsection{Exact String Match}
+For all the nominoal mentions, we first performed an exact string match to cluster mentions that had exactly the same glosses.
+
+\subsubsection{Head Token Lemma Match}
+Our second pass on nominal mentions was the head token lemma match. We tried matching the head words originally, but after experiments we decided to use the head token lemma instead.
+
+\subsubsection{Noun Pronoun Match}
+Our last pass on the data was to match pronouns with the nouns they were refering to. To achieve this, for a given pronoun and noun, we checked if they had consistent pluarity. We also added the constraint that the noun had to appear in the document before the pronoun, but they could not be too far away (more than 2 sentences apart). We only performed this match on third person pronouns.
+
+\subsubsection{Alternative Rules}
+The alternative rules that we tried but decided not to use in the end included head word matching, POS matching, and NER tag matching.
+
+\subsection{Error Analysis}
+In the rule based method, we were able to to take advantage over classifer based method in the following two points:
+
+First, we were able to encode complex rules that could not be easily represented as features. On rule that significantly helped our performance was the relative position of mentions. When we clustered pronouns together, we checked their sentence indices to make sure they appeared in the same or adjacent sentences. When we match a pronoun to a noun, we looked at their mention indices to make sure the noun appeared prior to the pronoun. 
+
+Second, we were able to easily make multiple passes over the data, clustering the mentions using different rules in descending precisions. This control flow enabled us to apply different language rules very conveniently without conflicts.
 
 \section{Classifier Based}
 \subsection{Overview}
@@ -132,6 +162,10 @@ Classifier-based & 0 & 0 & 0 & 0 & 0 & 0\\\hline
 
 
 \section{Extra Credit}
+\subsection{Multi-Pass Sieve Coreference System}
+When developing the rule-based system, we read the paper 
+\textit{Stanford’s Multi-Pass Sieve Coreference Resolution System at the CoNLL-2011 Shared Task} ad got inspired by their idea of running multiple passes over the data, each time using a different rule in descending precision order. Even though we did not follow the exact rules they were using in the paper, we did got a improved performance by implementing their control flow and applying our own rules.
+
 
 \section{Collaboration} 
 
