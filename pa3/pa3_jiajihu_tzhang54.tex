@@ -41,17 +41,17 @@ To start, we only had the exact match feature. We were obviously bound to miss a
 
 Looking at the actual output of the system, things were as expected. For example, all mentions ``Hezbollah'' were put in the same cluster due to the exact match feature. However, the system was making mistakes even where the mentions were pretty much the same, but had just a little difference like an extra ``the''. For example: \texttt{{the strikes} -->  !{strikes}; !{these strikes}}
 
-From that, we had the idea to use the head word of the mentions. This turned out to be a high impact feature. By adding an indicator to see if the head words were a match, we immediately got a significant increase in score (MUC 0.70, B3 0.64). We also looked at the lemma of the headword, which was also a good feature, but it was overlapped with the headword feature.
+From that, we had the idea to use the head word of the mentions. This turned out to be a high impact feature. By adding an indicator feature, our score increase to MUC 0.70, B3 0.64. We also looked at the lemma of the headword, which was also a good feature, but it was overlapped with the headword feature.
 
 With that feature, we saw that \texttt{{the strikes} -->  {strikes}; {these strikes}}, so that error case was solved. 
 
-However, there was still much to improve. We note that out system had 0.80+ precision but recall only around 0.6, which means we still don't have enough features to identify good coreference pairs. We thought that intuitively, coreferent mentions should be closer rather than further away. For example, there was a sentence: \texttt{since \{{the majority of strikers\}} are jobless and {\{they\}} have found...}, and we were not putting the two mentions in the same cluster. To try to solve this, we added mention distance as a feature.
+Next, we note that out system had 0.80+ precision but recall only around 0.6, which means we still don't have enough features to identify good coreference pairs. We thought that intuitively, coreferent mentions should be closer rather than further away. For example, there was a sentence: \texttt{since \{{the majority of strikers\}} are jobless and {\{they\}} have found...}, and we were not putting the two mentions in the same cluster. To try to solve this, we added mention distance as a feature.
 
-However, it turned out that neither the distance in terms of mentions or in terms of sentences improved the performance. In retrospect, this may be because of the way we are creating our examples. Our negative examples are all ones that are closer than the positive example for that mention. Therefore, the information is rather minimal.
+However, it turned out that the mention distance alone did not improve performance. In retrospect, this may be because of the way we are creating our examples. Our negative examples are all ones that are closer than the positive example for that mention. Therefore, the information is rather minimal.
 
 To improve on this, we observe that in many of these cases, one of the mentions is a pronoun. It makes sense that if one mention is a pronoun (such as ``they'' in our error example), mention distance may be more relevant. By pairing up the mention distance and the pronoun indicators, we got a slight increase in F1 score.
 
-After that, as suggested by the guidelines, we investigated the named entity type of the fixed and candidate mentions. After experimenting with the type, or whether they are the same, we concluded that this was not an impactful feature.
+After that, we investigated the named entity type of the mentions. We experimented with the type or whether they're the same, but concluded that it did not have good impact because the named entity tagging is too simple to provide useful information.
 
 At this point, we still had the problem of high precision and low recall -- we weren't extracting enough information.
 
@@ -63,11 +63,11 @@ For this example, our system clusters the two ``they''s, but misses the other tw
 
 \texttt{part of {\{Hezbollah\}} and {\{its}\} supporters ... strength of \{{this organization}\}}
 
-For this example, all three were put in different clusters. However, we see that the plural and speaker features would have helped here.
+For this example, all three were put in different clusters. However, we see that the plural and speaker features would help here.
 
 Therefore, we added gender and plural features for the case of one mention being a name or noun and the other being a pronoun, or both mentions being pronouns. For the speaker, we only look at pronouns. Also, there is a decision of whether we want a positive indicator for the two mentions being compatible, or a negative indicator for the two mentions being incompatible. Intuitively, the positive feature is good for increasing recall, and the negative feature is good for improving precision.
 
-As it turns out, both are good features, and their effects do not overlap. In addition, aggregating the three negative indicator features into one feature gave the same performance.
+As it turns out, both are good features, and their effects do not overlap. In addition, aggregating the three negative indicator features into one gave the same performance.
 
 With the plural, gender and speaker features, our system was able to get right all four mentions in the first error example.
 It was also able to correctly cluster \texttt{\{its\}} with \texttt{\{Hezbollah\}} for the second error example, so our features really had the expected effect on improving performance.
@@ -105,9 +105,15 @@ All & 0.792 & 0.721 \\\hline
 \label{tab:features}
 \end{table}
 \subsubsection{Final errors and future\\ improvements}
-characterizing systematic mistakes the system makes. You should describe how these features
-would be fixed, either with more features (and if so, whatwould they be?), or note that they cannot be easily captured
-in our framework.
+From the output of our system, we can still see a few errors that can potentially be fixed.
+
+For example, \texttt{\{this organization\} --> !\{Hezbollah\}; !\{Hezbollah\}; !\{its\}; !\{Hezbollah\} ...} shows that we are just not getting that ``Hezbollah'' is an organization -- something that NER should be able to pick up. If we incorporated named entity tagging as a new feature, mistakes like this should be avoided, and we could get substantially improved recall.
+
+A similar error case that would benefit from knowing named entity types is \texttt{\{Yemen 's President\}} with \texttt{\{him\}; \{he\}; \{his\};}.
+
+Also, we still miss a lot of \texttt{\{this\}} references, so incorporating knowledge from the parse tree will definitely help in those situations, which is something we can improve on.
+
+Finally, there are some errors that are quite understandable. For example, on the test set, our system was unable to realize that ``The USS Cole'' was a carrier, which was a ship. Things like this would benefit from world knowledge that the system obviously doesn't have. Incorporating this knowledge seems quite difficult for our framework.
 \section{Results}
 The results for this assignment are shown in Table~\ref{tab:results}. As you can see, ...............
 \begin{table}[b]
