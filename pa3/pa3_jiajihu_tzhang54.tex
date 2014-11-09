@@ -21,7 +21,7 @@ In the all singleton naive baseline implementation, we simply iterated over all 
 In the one cluster naive baseline implementation, we created an entity at the very beginning. When we iterated over the mentions, we marked each mention as coreferent with the same entity.
 
 \subsection{MUC Analysis}
-The all singleton baseline got 100\% MUC precision but 0 MUC recall, and the one cluster baseline got 100\% MUC recall but a lower MUC precision. This made sense according to the definition of MUC. In all singleton baseline, each mention was clustered to itself, so there was never a wrong clustering. However, since the actual clustering did not include singletons, it was not able to capture any of the correct ones either, leading to a zero recall. One cluster baseline clustered all mentions together, so all pairs of mentions were connected by some edges, leading to a 100\% recall. The precision was low because some irrelevant mentions were clustered.
+The all singleton baseline got 100\% MUC precision but 0 MUC recall, and the one cluster baseline got 100\% MUC recall and 74\% MUC precision. This made sense according to the definition of MUC. In all singleton baseline, each mention was clustered to itself, so there was never a wrong clustering. However, since the actual clustering did not include singletons, it was not able to capture any of the correct ones either, leading to a zero recall. One cluster baseline clustered all mentions together, so all pairs of mentions were connected by some edges, leading to a 100\% recall. The precision was low because some irrelevant mentions were clustered.
 
 \section{Better Baseline}
 Our baseline implementation was based on head words of the mentions. We decided to use head words because from the experiments we found that they were a very strong indicator of the clustering.
@@ -159,6 +159,7 @@ Finally, there are some errors that are quite understandable. For example, on th
 \hline
 & & MUC & & & B3 & \\
 Algorithm & Prec & Recall & F1 & Prec & Recall & F1 \\\hline
+Better Baseline & 0.728 & 0.553 & 0.590 & 0.594 & 0.592 & 0.741 \\\hline
 Rule-based & 0.847 & 0.774 & 0.809 & 0.786 & 0.702 & 0.741 \\\hline  
 Classifier-based & 0.862 & 0.733 & 0.792 & 0.825 & 0.640 & 0.721 \\\hline
 \end{tabular}
@@ -172,6 +173,7 @@ Classifier-based & 0.862 & 0.733 & 0.792 & 0.825 & 0.640 & 0.721 \\\hline
 \hline
 & & MUC & & & B3 & \\
 Algorithm & Prec & Recall & F1 & Prec & Recall & F1 \\\hline
+Better Baseline & 0.708 & 0.440 & 0.543 & 0.676 & 0.545 & 0.604 \\\hline
 Rule-based & 0.829 & 0.708 & 0.764 & 0.800 & 0.676 & 0.733 \\\hline  
 Classifier-based & 0.854 & 0.664 & 0.747 & 0.866 & 0.624 & 0.725 \\\hline
 \end{tabular}
@@ -188,5 +190,23 @@ We also see that the results on the test set is slightly worse than those on the
 When developing the rule-based system, we read the paper 
 \textit{Stanford’s Multi-Pass Sieve Coreference Resolution System at the CoNLL-2011 Shared Task} and used their idea of running multiple passes over the data, each time using a different rule in descending precision order.
 
-We implemented their control flow and applied our own rules, which gave us an improved performance.
+We implemented their control flow and applied our own rules, which gave us an improved performance. For recap, our rules for each pass were:
+
+1. Exact String Matching
+2. Head Token Lemma Matching
+3. Pronoun Matching
+4. Noun and Pronoun Matching
+
+From the results table below, we could see in each pass, we got an improved score from a new rule.
+
+
+\begin{tabular}{l|c c c|c c c}
+	\hline
+	Rules & MUC F1 & B3 F1\\\hline
+	1 & 0.560 & 0.605 \\\hline
+	1,2 & 0.723 & 0.706 \\\hline
+	1,2,3 & 0.733 & 0.720 \\\hline
+	1,2,3,4 & 0.761 & 0.728\\\hline
+\end{tabular}
+
 \end{document}
