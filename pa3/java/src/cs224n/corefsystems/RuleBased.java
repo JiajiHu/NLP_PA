@@ -29,13 +29,8 @@ public class RuleBased implements CoreferenceSystem {
             if (Pronoun.valueOrNull(m.headWord()) != null) {
                 pronounMentionGroups.add(singleMentionGroup);
             } else {
-                String nerTag = m.headToken().nerTag();
-
                 mentionGroups.add(singleMentionGroup);
             }
-//            System.out.println("NER Tag: " + m.headWord() + " " + m.headToken().nerTag());
-//            System.out.println("Mention Parse: " + m.parse);
-//            System.out.println("Quoted: " + m.headToken().isQuoted() + " Speaker: " + m.headToken().speaker());
         }
 
         // Pronoun Match
@@ -150,10 +145,6 @@ public class RuleBased implements CoreferenceSystem {
                         if (Math.abs(sentIdx1 - sentIdx2) <= 2) {
                             return true;
                         }
-//                        if (Math.abs(mentionIdx1 - mentionIdx2) <= 10 ||
-//                                Math.abs(sentIdx1 - sentIdx2) <= 2) {
-//                            return true;
-//                        }
                     }
                 }
             }
