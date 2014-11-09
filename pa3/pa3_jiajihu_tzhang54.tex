@@ -21,7 +21,7 @@ In the all singleton naive baseline implementation, we simply iterated over all 
 In the one cluster naive baseline implementation, we created an entity at the very beginning. When we iterated over the mentions, we marked each mention as coreferent with the same entity.
 
 \subsection{MUC Analysis}
-The all singleton baseline got 100\% MUC precision but 0 MUC recall. On the other hand, the one cluster baseline got 100\% MUC recall but a lower MUC precision. This behavior made sense according to the definition of MUC. In all singleton baseline, each mention was clustered to it self, so there was never a wrong clustering. However, since the actual clustering did not include singletons, it was not able to capture any of the correct ones either, leading to a zero recall. One cluster baseline clustered all mentions together, so all pairs of mentions were connected by some edges, leading to a 100\% recall. The precision was low because some irrelevant mentions were clustered.
+The all singleton baseline got 100\% MUC precision but 0 MUC recall, and the one cluster baseline got 100\% MUC recall but a lower MUC precision. This made sense according to the definition of MUC. In all singleton baseline, each mention was clustered to itself, so there was never a wrong clustering. However, since the actual clustering did not include singletons, it was not able to capture any of the correct ones either, leading to a zero recall. One cluster baseline clustered all mentions together, so all pairs of mentions were connected by some edges, leading to a 100\% recall. The precision was low because some irrelevant mentions were clustered.
 
 \section{Better Baseline}
 Our baseline implementation was based on head words of the mentions. We decided to use head words because from the experiments we found that they were a very strong indicator of the clustering.
@@ -30,8 +30,9 @@ For test mentions, we checked if the pair of head words of two mentions had appe
 
 \section{Rule Based}
 \subsection{Overview}
-In our rule-based implementation, there was no training process. All the clustering happened under our control flow. 
-We first iterated over all mentions and created a Set<Mention> containing only the mention itself. Then we iterated over the sets multiple times. Each time we would apply a new rule. Based on the rule we would decide whether two sets should be merged. If yes, we combined the two sets into a larger set. The order we applied the rules was from the high-precision low-recall rules to the low-precision high-recall ones. 
+In our rule-based implementation, there was no training process. All the clustering happened under our control flow, which was inspired by the paper mentioned in Section 6.
+
+We first iterated over all mentions and created a Set$<$Mention$>$ containing only the mention itself. Then we iterated over the sets multiple times. Each time we would apply a new rule. Based on the rule we would decide whether two sets should be merged. If yes, we combined the two sets into a larger set. The order we applied the rules was from the high-precision low-recall rules to the low-precision high-recall ones. 
 At the end of the flow, we iterated over all the remaining set of mentions and clustered all mentions from the same set.
 
 \subsection{Rules}
@@ -39,30 +40,37 @@ After experiments, the final rules we applied were the following (in order):
 
 \subsubsection{Pronouns Matching}
 In our first pass over all the mentions, we checked if the head word of a mention was a pronoun. If it was a pronoun, put the mention in a separate set.
-Our first rule was to cluster pronouns that possibly refer to the same noun. Given two pronouns, we first checked if the mentions were quoted. If only one of the mentions was quoted, then they were not clustered. If neither or both of them were quoted and had the same speaker, we proceeded to the next step. In the next step, we checked if the pronouns had the consistent gender, pluarity, and speaker. Next, if the two pronouns were both first or second person pronouns, we clustered them together since it was likely that "I", "You" from the same document refer to the same person. If the pronouns were both third person, we looked at their sentence indices. If the difference of the sentence indices was within 2, we clustered the pronouns. 
+
+Our first rule was to cluster pronouns that possibly refer to the same noun. Given two pronouns, we first checked if the mentions were quoted. If only one of the mentions was quoted, then they were not clustered. If neither or both of them were quoted and had the same speaker, we proceeded to the next step. In the next step, we checked if the pronouns had the consistent gender, plurality, and speaker. Next, if the two pronouns were both first or second person pronouns, we clustered them together since it was likely that "I", "You" from the same document refer to the same person. If the pronouns were both third person, we looked at their sentence indices. If the difference of the sentence indices was within 2, we clustered the pronouns.
+
+The reason we focus on pronouns is because we saw that many mentions in our data were pronouns, and that we were getting many errors in these cases. The rule designs come from our intuition about language structure.
 
 \subsubsection{Exact String Match}
-For all the nominoal mentions, we first performed an exact string match to cluster mentions that had exactly the same glosses.
+For all the nominal mentions, we first performed an exact string match to cluster mentions that had exactly the same glosses.
 
 \subsubsection{Head Token Lemma Match}
 Our second pass on nominal mentions was the head token lemma match. We tried matching the head words originally, but after experiments we decided to use the head token lemma instead.
 
 \subsubsection{Noun Pronoun Match}
-Our last pass on the data was to match pronouns with the nouns they were refering to. To achieve this, for a given pronoun and noun, we checked if they had consistent pluarity. We also added the constraint that the noun had to appear in the document before the pronoun, but they could not be too far away (more than 2 sentences apart). We only performed this match on third person pronouns.
+Our last pass on the data was to match pronouns with the nouns they were referring to. To achieve this, for a given pronoun and noun, we checked if they had consistent plurality. We also added a constraint that the noun had to appear in the document before the pronoun, but they were not too far away (more than 2 sentences apart). We only performed this match on third person pronouns.
 
 \subsubsection{Alternative Rules}
 The alternative rules that we tried but decided not to use in the end included head word matching, POS matching, and NER tag matching.
 
-\subsection{Error Analysis}
-In the rule based method, we were able to to take advantage over classifer based method in the following two points:
+\subsection{Analysis}
+In the rule based method, we were able to take advantage over classifier based method in the following two points:
 
 First, we were able to encode complex rules that could not be easily represented as features. On rule that significantly helped our performance was the relative position of mentions. When we clustered pronouns together, we checked their sentence indices to make sure they appeared in the same or adjacent sentences. When we match a pronoun to a noun, we looked at their mention indices to make sure the noun appeared prior to the pronoun. 
 
 Second, we were able to easily make multiple passes over the data, clustering the mentions using different rules in descending precisions. This control flow enabled us to apply different language rules very conveniently without conflicts.
 
+Looking at the output, we see that we do very well with cases covered by the rules, but fail when the rules don't cover the case. For example, \texttt{the nearby houses} and \texttt{nearby houses} and \texttt{the houses} don't even match, even though it seems like a simple case.
+If we had detailed labels of the named entity type, we can maybe check to see that they are all Locations, and put them in the same cluster.
+
+Also, we did not go far into looking at the gender of pronouns. This would go along well with better entity type tags, since gender is most relevant if we can determine whether a mention is a person. Many useful rules can be done in this space.
 \section{Classifier Based}
 \subsection{Overview}
-The classifier based system uses a set of positive and negative examples of coreferent pairs to train a maxent classifier. Every training example consists of a pair of mentions and a label of whether they are coreferent. For this part, we went along with only using the most recent coreferent mention as a positive example, and using only intervening mentions as negative examples. 
+The classifier based system uses a set of positive and negative examples of coreferent pairs to train a maxent classifier. Every training example consists of a pair of mentions and the label. For this part, we went along with only using the most recent coreferent mention as a positive example, and using only intervening mentions as negative examples. 
 \subsection{Feature Engineering}
 \subsubsection{Feature Design Process and\\ Error analysis}
 For this part, we looked into features that we thought were relevant to classification. After we implement and test a feature, we look at the results, do error analysis and make modifications or extensions to make it better. Our feature design process was as follows:
@@ -75,9 +83,9 @@ From that, we had the idea to use the head word of the mentions. This turned out
 
 With that feature, we saw that \texttt{{the strikes} -->  {strikes}; {these strikes}}, so that error case was solved. 
 
-Next, we note that out system had 0.80+ precision but recall only around 0.6, which means we still don't have enough features to identify good coreference pairs. We thought that intuitively, coreferent mentions should be closer rather than further away. For example, there was a sentence: \texttt{since \{{the majority of strikers\}} are jobless and {\{they\}} have found...}, and we were not putting the two mentions in the same cluster. To try to solve this, we added mention distance as a feature.
+Next, we note that out system had high precision but low recall, which means we don't have enough features to identify good coreference pairs. We thought that intuitively, coreferent mentions should be closer rather than further away. For example, there was a sentence: \texttt{since \{{the majority of strikers\}} are jobless and {\{they\}} have found...}, and we were not putting the two mentions in the same cluster. To try to solve this, we added mention distance as a feature.
 
-However, it turned out that the mention distance alone did not improve performance. In retrospect, this may be because of the way we are creating our examples. Our negative examples are all ones that are closer than the positive example for that mention. Therefore, the information is rather minimal.
+However, it turned out that the mention distance alone did not improve performance. In retrospect, this may be because in our system, negative examples are all closer than the positive example for that mention. Therefore, the information is rather mixed.
 
 To improve on this, we observe that in many of these cases, one of the mentions is a pronoun. It makes sense that if one mention is a pronoun (such as ``they'' in our error example), mention distance may be more relevant. By pairing up the mention distance and the pronoun indicators, we got a slight increase in F1 score.
 
@@ -95,17 +103,17 @@ For this example, our system clusters the two ``they''s, but misses the other tw
 
 For this example, all three were put in different clusters. However, we see that the plural and speaker features would help here.
 
-Therefore, we added gender and plural features for the case of one mention being a name or noun and the other being a pronoun, or both mentions being pronouns. For the speaker, we only look at pronouns. Also, there is a decision of whether we want a positive indicator for the two mentions being compatible, or a negative indicator for the two mentions being incompatible. Intuitively, the positive feature is good for increasing recall, and the negative feature is good for improving precision.
+Therefore, we added gender and plural features for if one mention is a name or noun and the other is a pronoun, or if bothare pronouns. For the speaker, we only look at pronouns. Also, there is a decision of whether we want a positive indicator for the two being compatible, or a negative indicator that the two are incompatible. Intuitively, the positive feature is good for increasing recall, and the negative is good for improving precision.
 
-As it turns out, both are good features, and their effects do not overlap. In addition, aggregating the three negative indicator features into one gave the same performance.
+As it turns out, both are good features. In addition, aggregating the three negative indicator features into one gave the same performance.
 
 With the plural, gender and speaker features, our system was able to get right all four mentions in the first error example.
 It was also able to correctly cluster \texttt{\{its\}} with \texttt{\{Hezbollah\}} for the second error example, so our features really had the expected effect on improving performance.
 
 In the end, our system uses the following:
 \begin{enumerate}[(1)]
-\item Exact match (case insensitive)
-\item Headword is same
+\item Exact string match (case insensitive)
+\item Headword is same (case insensitive)
 \item Pair(Mention dist, Fixed is pronoun) 
 \item Pair(Mention dist, Cand. is pronoun) 
 \item Name-Pronoun gender incompatible
@@ -137,15 +145,13 @@ All & 0.792 & 0.721 \\\hline
 \subsubsection{Final errors and future\\ improvements}
 From the output of our system, we can still see a few errors that can potentially be fixed.
 
-For example, \texttt{\{this organization\} --> !\{Hezbollah\}; !\{Hezbollah\}; !\{its\}; !\{Hezbollah\} ...} shows that we are just not getting that ``Hezbollah'' is an organization -- something that NER should be able to pick up. If we incorporated named entity tagging as a new feature, mistakes like this should be avoided, and we could get substantially improved recall.
+For example, \texttt{\{this organization\} --> !\{Hezbollah\}; !\{Hezbollah\}; !\{its\}; !\{Hezbollah\} ...} shows that we are just not getting that ``Hezbollah'' is an organization -- something that NER should be able to pick up. If we incorporated named entity tagging to make new features, mistakes like this should be avoided, and we could get substantially improved recall.
 
 A similar error case that would benefit from knowing named entity types is \texttt{\{Yemen 's President\}} with \texttt{\{him\}; \{he\}; \{his\};}.
 
 Also, we still miss a lot of \texttt{\{this\}} references, so incorporating knowledge from the parse tree will definitely help in those situations, which is something we can improve on.
 
 Finally, there are some errors that are quite understandable. For example, on the test set, our system was unable to realize that ``The USS Cole'' was a carrier, which was a ship. Things like this would benefit from world knowledge that the system obviously doesn't have. Incorporating this knowledge seems quite difficult for our framework.
-\section{Results}
-The results for this assignment are shown in Table~\ref{tab:devresults} and Table~\ref{tab:testresults}. As you can see, the resulting scores are quite satisfactory.
 \begin{table}[H]
 \begin{minipage}{\textwidth}
 \centering
@@ -172,14 +178,15 @@ Classifier-based & 0.854 & 0.664 & 0.747 & 0.866 & 0.624 & 0.725 \\\hline
 \caption{Test results for both systems}\label{tab:testresults}
 \end{minipage}
 \end{table}
+\section{Results}
+The results for this assignment are shown in Table~\ref{tab:devresults} and Table~\ref{tab:testresults}. As you can see, the resulting scores are quite satisfactory.
 
+We also see that the results on the test set is slightly worse than those on the dev set, which is expected, since we are testing and modifying our features to maximize performance on the dev set, and have never seen the test data set.
 
 \section{Extra Credit}
 \subsection{Multi-Pass Sieve \\Coreference System}
 When developing the rule-based system, we read the paper 
-\textit{Stanford’s Multi-Pass Sieve Coreference Resolution System at the CoNLL-2011 Shared Task} ad got inspired by their idea of running multiple passes over the data, each time using a different rule in descending precision order. Even though we did not follow the exact rules they were using in the paper, we did got a improved performance by implementing their control flow and applying our own rules.
+\textit{Stanford’s Multi-Pass Sieve Coreference Resolution System at the CoNLL-2011 Shared Task} and used their idea of running multiple passes over the data, each time using a different rule in descending precision order.
 
-
-\section{Collaboration} 
-For this assignment, Tong worked on the Naive, Better Baseline, and Rule Based sections, while Jiaji worked on the Classifier based system. We wrote the report together.
+We implemented their control flow and applied our own rules, which gave us an improved performance.
 \end{document}
