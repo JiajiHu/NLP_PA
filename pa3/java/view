@@ -1,7 +1,8 @@
 #!/bin/bash
 #
 
-DATA_DIR=/afs/ir/class/cs224n/data/pa3
+#DATA_DIR=/afs/ir/class/cs224n/data/pa3
+DATA_DIR=../data
 
 # -- Variables
 #(parse command line)
