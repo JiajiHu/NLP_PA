@@ -53,7 +53,6 @@ public class NER {
 
 
         //	read the train and test data
-        //TODO: Implement this function (just reads in vocab and word vectors)
         FeatureFactory.initializeVocab("../data/vocab.txt");
         SimpleMatrix allVecs= FeatureFactory.readWordVectors("../data/wordVectors.txt");
 
