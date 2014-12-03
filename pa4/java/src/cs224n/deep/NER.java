@@ -57,12 +57,12 @@ public class NER {
         SimpleMatrix allVecs= FeatureFactory.readWordVectors("../data/wordVectors.txt");
 
         // initialize model
-    //	WindowModel model = new WindowModel(5, 100,0.001);
-    //	model.initWeights();
-
+    	WindowModel model = new WindowModel(3, 10,0.001);
+    	model.initWeights();
 
         // Baseline model
-        BaselineModel model = new BaselineModel();
+//        BaselineModel model = new BaselineModel();
+
         model.train(trainData);
         model.test(testData);
         Map<String, String> predictions= model.getPredictions();
