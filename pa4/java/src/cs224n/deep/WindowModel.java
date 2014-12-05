@@ -225,6 +225,10 @@ public class WindowModel {
         return vectorP;
     }
 
+    public static String replaceDigits(String string) {
+        return string.replaceAll("\\d", FeatureFactory.DIGIT_WORD);
+    }
+
     private List<Integer> generateWordNumList(List<Datum> data, int C, int currIndex){
         List<Integer> wordNumList = new ArrayList();
         for (int i = currIndex - C/2; i <= currIndex + C/2; i++ ) {
@@ -234,7 +238,7 @@ public class WindowModel {
             } else if (i >= data.size()) {
                 word = END_TOKEN;
             } else {
-                word = data.get(i).word;
+                word = replaceDigits(data.get(i).word.toLowerCase());
             }
             int wordNum = wordToNum.get(FeatureFactory.UNKNOWN_WORD);
             if (wordToNum.containsKey(word)){
@@ -255,7 +259,7 @@ public class WindowModel {
             } else if (i >= data.size()) {
                 word = END_TOKEN;
             } else {
-                word = data.get(i).word;
+                word = replaceDigits(data.get(i).word.toLowerCase());
             }
             double[] wordVector = getWordVector(word);
             for (double w : wordVector) {
