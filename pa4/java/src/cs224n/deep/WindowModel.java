@@ -51,7 +51,7 @@ public class WindowModel {
         double epsilon = Math.sqrt(6) / Math.sqrt((double) (windowSize * wordSize + hiddenSize));
 
         // initialize bias vector randomly to avoid overfitting
-        W = SimpleMatrix.random(hiddenSize, wordSize * (windowSize  + 1), -epsilon, epsilon, new Random());
+        W = SimpleMatrix.random(hiddenSize, wordSize * windowSize  + 1, -epsilon, epsilon, new Random());
         U = SimpleMatrix.random(NUM_PREDICTION_CLASSES, hiddenSize + 1, -epsilon, epsilon, new Random());
 
 	}
@@ -233,7 +233,7 @@ public class WindowModel {
     } 
 
     private SimpleMatrix generateWindow(List<Datum> data, int C, int currIndex) {
-        SimpleMatrix vectorX = new SimpleMatrix(wordSize * (C + 1), 1);
+        SimpleMatrix vectorX = new SimpleMatrix(wordSize * C + 1, 1);
         int rowIndex = 0;
         for (int i = currIndex - C/2; i <= currIndex + C/2; i++ ) {
             String word = "";
@@ -252,10 +252,8 @@ public class WindowModel {
         }
 
         // add the constants for the bias
-        while (rowIndex < vectorX.numRows()) {
-            vectorX.set(rowIndex, 0, 1.0);
-            rowIndex++;
-        }
+        vectorX.set(rowIndex, 0, 1.0);
+        rowIndex++;
 
         return vectorX;
         
