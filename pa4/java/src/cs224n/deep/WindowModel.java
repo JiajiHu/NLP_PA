@@ -31,7 +31,7 @@ public class WindowModel {
         wordToNum = FeatureFactory.wordToNum;
         predictions = new HashMap<String, String>();
 
-        iterations = 30;
+        iterations = 20;
 		windowSize = _windowSize;
         hiddenSize = _hiddenSize;
         learningRate = _lr;
