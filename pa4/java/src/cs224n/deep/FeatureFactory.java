@@ -9,6 +9,11 @@ import org.ejml.simple.*;
 
 public class FeatureFactory {
 
+    public static final String UNKNOWN_WORD = "UUUNKKK";
+    public static final String DIGIT_WORD = "DG";
+    public static final String START_TOKEN = "<s>";
+    public static final String END_TOKEN = "</s>";
+
 
 	private FeatureFactory() {
 
@@ -56,7 +61,7 @@ public class FeatureFactory {
 		if (allVecs!=null) return allVecs;
 
         // get vector matrix size
-        int numVectors = 1; // start from 1 because of UNKNOWN_WORD column
+        int numVectors = 0;
         BufferedReader br = new BufferedReader(new FileReader(vecFilename));
         String line = br.readLine();
         int vectorDimension = line.trim().split(" ").length;
@@ -70,7 +75,6 @@ public class FeatureFactory {
         br.close();
 
         allVecs = new SimpleMatrix(vectorDimension, numVectors);
-//        System.out.println("N = " + allVecs.numRows() + ", V = " + allVecs.numCols());
 
         // populate vector matrix
         double[] column = new double[vectorDimension];
@@ -78,7 +82,7 @@ public class FeatureFactory {
         br = new BufferedReader(new FileReader(vecFilename));
         line = br.readLine();
 
-        int colIdx = 1;
+        int colIdx = 0;
 
         while (line != null) {
             if (line.trim().length() == 0) {
@@ -106,35 +110,23 @@ public class FeatureFactory {
 	public static HashMap<String, Integer> wordToNum = new HashMap<String, Integer>(); 
 	public static HashMap<Integer, String> numToWord = new HashMap<Integer, String>();
 
-    public static String UNKNOWN_WORD = "UNKNOWN_WORD";
-
 	public static void initializeVocab(String vocabFilename) throws IOException {
         BufferedReader br = new BufferedReader(new FileReader(vocabFilename));
 
-        // Add the unknown word to the lookups
-        wordToNum.put(UNKNOWN_WORD, 0);
-        numToWord.put(0, UNKNOWN_WORD);
-
-        int rowIdx = 1;
+        int rowIdx = 0;
         String line = br.readLine();
         while (line != null) {
-            if (line.trim().length() == 0) {
-                continue;
+            String word = line.trim();
+
+            if (word.length() != 0) {
+                wordToNum.put(word, rowIdx);
+                numToWord.put(rowIdx, word);
+                rowIdx++;
             }
-            wordToNum.put(line, rowIdx);
-            numToWord.put(rowIdx, line);
-            rowIdx++;
+
             line = br.readLine();
         }
         br.close();
 	}
- 
-
-
-
-
-
-
-
 
 }
