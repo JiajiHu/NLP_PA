@@ -15,7 +15,8 @@ public class WindowModel {
     private HashMap<String, Integer> wordToNum;
     private HashMap<String, String> predictions;
 
-	public int windowSize, wordSize, hiddenSize;
+	public int windowSize, wordSize, hiddenSize, iterations;
+    public double learningRate;
 
     public String[] predictionLabels = new String[]{"O", "LOC", "MISC", "ORG", "PER"};
     public Map<String, Integer> labelToIndex = new HashMap();
@@ -30,8 +31,10 @@ public class WindowModel {
         wordToNum = FeatureFactory.wordToNum;
         predictions = new HashMap<String, String>();
 
+        iterations = 30;
 		windowSize = _windowSize;
         hiddenSize = _hiddenSize;
+        learningRate = _lr;
         wordSize = L.numRows();
 
         int labelIndex = 0;
@@ -51,8 +54,8 @@ public class WindowModel {
         double epsilon = Math.sqrt(6) / Math.sqrt((double) (windowSize * wordSize + hiddenSize));
 
         // initialize bias vector randomly to avoid overfitting
-        W = SimpleMatrix.random(hiddenSize, wordSize * windowSize  + 1, -epsilon, epsilon, new Random());
-        U = SimpleMatrix.random(NUM_PREDICTION_CLASSES, hiddenSize + 1, -epsilon, epsilon, new Random());
+        this.W = SimpleMatrix.random(hiddenSize, wordSize * windowSize  + 1, -epsilon, epsilon, new Random());
+        this.U = SimpleMatrix.random(NUM_PREDICTION_CLASSES, hiddenSize + 1, -epsilon, epsilon, new Random());
 
 	}
 
@@ -60,37 +63,37 @@ public class WindowModel {
 	/**
 	 * Simplest SGD training 
 	 */
-	public void train(List<Datum> trainData ){
-        for (int datumIndex = 0; datumIndex < trainData.size(); datumIndex++) {
-            // forward propagation
+	public void train(List<Datum> trainData){
+        for (int i = 0; i< iterations; i++) {
+            System.out.println("Iteration: " + i);
+            for (int datumIndex = 0; datumIndex < trainData.size(); datumIndex++) {
+                
+                List<Integer> wordNums = generateWordNumList(trainData, windowSize, datumIndex);
+                SimpleMatrix vectorX = generateWindow(trainData, windowSize, datumIndex);
+                SimpleMatrix vectorZ = W.mult(vectorX);
+                SimpleMatrix vectorH = tanh(vectorZ);
+                SimpleMatrix vectorV = U.mult(addConstRow(vectorH));
+                SimpleMatrix vectorP = softmax(vectorV);
 
-            /* Some intermediate vectors are needed */
-            // SimpleMatrix vectorP = forwardProp(trainData, datumIndex);
-            
-            List<Integer> wordNums = generateWordNumList(trainData, windowSize, datumIndex);
-            SimpleMatrix vectorX = generateWindow(trainData, windowSize, datumIndex);
-            SimpleMatrix vectorZ = W.mult(vectorX);
-            SimpleMatrix vectorH = tanh(vectorZ);
-            SimpleMatrix vectorV = U.mult(addConstRow(vectorH));
-            SimpleMatrix vectorP = softmax(vectorV);
+                // System.out.println();
+                // System.out.println("U: " + U.numRows() + ", " + U.numCols());
+                // System.out.println("W: " + W.numRows() + ", " + W.numCols());
+                // System.out.println("L: " + L.numRows() + ", " + L.numCols());
+                // System.out.println();
+                // System.out.println("X: " + vectorX.numRows() + ", " + vectorX.numCols());
+                // System.out.println("Z: " + vectorZ.numRows() + ", " + vectorZ.numCols());
+                // System.out.println("H: " + vectorH.numRows() + ", " + vectorH.numCols());
+                // System.out.println("V: " + vectorV.numRows() + ", " + vectorV.numCols());
+                // System.out.println("P: " + vectorP.numRows() + ", " + vectorP.numCols());
 
-            System.out.println("U: " + U.numRows() + ", " + U.numCols());
-            System.out.println("W: " + W.numRows() + ", " + W.numCols());
-            System.out.println();
-            System.out.println("X: " + vectorX.numRows() + ", " + vectorX.numCols());
-            System.out.println("Z: " + vectorZ.numRows() + ", " + vectorZ.numCols());
-            System.out.println("H: " + vectorH.numRows() + ", " + vectorH.numCols());
-            System.out.println("V: " + vectorV.numRows() + ", " + vectorV.numCols());
-            System.out.println("P: " + vectorP.numRows() + ", " + vectorP.numCols());
-
-            int labelNum = labelToIndex.get(trainData.get(datumIndex).label);
-            List<SimpleMatrix> deltas = getDeltas(labelNum, vectorH, vectorP);
-            List<SimpleMatrix> gradients = getGradients(false, vectorX, vectorH, deltas);
-            
-            //check = gradCheck(regOn, vec, W, U, y, grads);
-            
-            oneSGD(gradients, wordNums);
-        
+                int labelNum = labelToIndex.get(trainData.get(datumIndex).label);
+                List<SimpleMatrix> deltas = getDeltas(labelNum, vectorH, vectorP);
+                List<SimpleMatrix> gradients = getGradients(false, vectorX, vectorH, deltas);
+                
+                //check = gradCheck(regOn, vec, W, U, y, grads);
+                
+                oneSGD(gradients, wordNums);
+            }
         }
 	}
 
@@ -99,14 +102,14 @@ public class WindowModel {
         
         SimpleMatrix delta2 = new SimpleMatrix(NUM_PREDICTION_CLASSES,1);
         for (int i = 0; i<NUM_PREDICTION_CLASSES; i++) {
-            delta2.set(i, 0, vectorP.get(i,0)-(i == labelNum ? 0 : 1));
+            delta2.set(i, 0, vectorP.get(i,0) - (i == labelNum ? 1 : 0));
         }
         
-        System.out.println("delta2: " + delta2.numRows() + ", " + delta2.numCols());
         SimpleMatrix delta1 = elementWiseMultMat(removeConstRow(U.transpose().mult(delta2)), elementWiseTanhGrad(vectorH));    
-        System.out.println("delta1: " + delta1.numRows() + ", " + delta1.numCols());
         SimpleMatrix delta0 = W.transpose().mult(delta1);    
-        System.out.println("delta0: " + delta0.numRows() + ", " + delta0.numCols());
+        // System.out.println("delta0: " + delta0.numRows() + ", " + delta0.numCols());
+        // System.out.println("delta1: " + delta1.numRows() + ", " + delta1.numCols());
+        // System.out.println("delta2: " + delta2.numRows() + ", " + delta2.numCols());
         deltas.add(delta0);
         deltas.add(delta1);
         deltas.add(delta2); //put them in intuitive order!
@@ -119,23 +122,33 @@ public class WindowModel {
         if (hasRegularization) {
             // TODO: add regularization
         } else {
-            gradients.add(deltas.get(0)); //partial{J}{x}
-            SimpleMatrix partialW = deltas.get(1).mult(vectorX.transpose()); //partial{J}{W}
-            SimpleMatrix partialb1 = deltas.get(1); //partial{J}{b1}
-            gradients.add(appendCol(partialW, partialb1));
-            SimpleMatrix partialU = deltas.get(2).mult(vectorH.transpose()); //partial{J}{U}
-            SimpleMatrix partialb2 = deltas.get(2); //partial{J}{b2}
-            gradients.add(appendCol(partialU, partialb2));
+            gradients.add(removeConstRow(deltas.get(0))); //partial{J}{x}
+            SimpleMatrix partialW = new SimpleMatrix(W.numRows(), W.numCols());
+            partialW.insertIntoThis(0, 0, deltas.get(1).mult(vectorX.transpose()));//partial{J}{W}
+            partialW.insertIntoThis(0, W.numRows()-1, deltas.get(1));//partial{J}{b1}
+            gradients.add(partialW);
+            SimpleMatrix partialU = new SimpleMatrix(U.numRows(), U.numCols());
+            partialU.insertIntoThis(0, 0, deltas.get(2).mult(vectorH.transpose())); //partial{J}{U}
+            partialU.insertIntoThis(0, U.numRows()-1, deltas.get(2)); //partial{J}{b2}
+            gradients.add(partialU);
         }
-        System.out.println("partialx: " + gradients.get(0).numRows() + ", " + gradients.get(0).numCols());
-        System.out.println("partialW: " + gradients.get(1).numRows() + ", " + gradients.get(1).numCols());
-        System.out.println("partialU: " + gradients.get(2).numRows() + ", " + gradients.get(2).numCols());
+
+        // System.out.println("partialx: " + gradients.get(0).numRows() + ", " + gradients.get(0).numCols());
+        // System.out.println("partialW: " + gradients.get(1).numRows() + ", " + gradients.get(1).numCols());
+        // System.out.println("partialU: " + gradients.get(2).numRows() + ", " + gradients.get(2).numCols());
 
         return gradients;
     }
 
     private void oneSGD(List<SimpleMatrix> gradients, List<Integer> wordNums){
-        return;   
+
+        for (int i=0; i<windowSize; i++){
+            SimpleMatrix oldL = L.extractMatrix(0, L.numRows(), wordNums.get(i), wordNums.get(i)+1);
+            SimpleMatrix newL = oldL.plus(elementWiseMultScalar(gradients.get(0).extractMatrix(i*wordSize, i*wordSize+wordSize, 0, 1), -learningRate));
+            L.insertIntoThis(0, wordNums.get(i), newL);
+        }
+        W = W.plus(elementWiseMultScalar(gradients.get(1), -learningRate));
+        U = U.plus(elementWiseMultScalar(gradients.get(2), -learningRate));
     }
 
     private SimpleMatrix removeConstRow(SimpleMatrix m){
@@ -223,7 +236,7 @@ public class WindowModel {
             } else {
                 word = data.get(i).word;
             }
-            int wordNum = -1;
+            int wordNum = wordToNum.get(FeatureFactory.UNKNOWN_WORD);
             if (wordToNum.containsKey(word)){
                 wordNum = wordToNum.get(word);
             }
@@ -317,10 +330,14 @@ public class WindowModel {
             return vectorV;
         }
 
-        double sum = vectorV.elementSum();
+        double sum = 0;
+        for (int i = 0; i < numRows; i++){
+            sum += Math.exp(vectorV.get(i, 0));
+        }
+
         SimpleMatrix vectorP = new SimpleMatrix(numRows, numCols);
         for (int i = 0; i < numRows; i++) {
-            double val = vectorV.get(i, 0) / sum;
+            double val = Math.exp(vectorV.get(i, 0)) / sum;
             vectorP.set(i, 0, val);
         }
 
