@@ -91,6 +91,10 @@ public class WindowModel {
             // gradientCheck(labelNum, vectorX, gradients, true, true, true);
             
             oneSGD(gradients, wordNums);
+
+            // previousPredictions = new double[additionalDim];
+            // previousPredictions[labelNum] = 1;
+
             previousPredictions = vectorP.extractVector(false, 0).getMatrix().getData();
 
         }
