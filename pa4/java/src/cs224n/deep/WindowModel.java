@@ -17,6 +17,7 @@ public class WindowModel {
 
 	public int windowSize, wordSize, hiddenSize, iterations;
     public double learningRate;
+    public boolean hasRegularization;
 
     public String[] predictionLabels = new String[]{"O", "LOC", "MISC", "ORG", "PER"};
     public Map<String, Integer> labelToIndex = new HashMap();
@@ -26,12 +27,13 @@ public class WindowModel {
     public static final String BEGIN_TOKEN = "<s>";
     public static final String END_TOKEN = "</s>";
 
-	public WindowModel(int _windowSize, int _hiddenSize, double _lr){
+	public WindowModel(int _windowSize, int _hiddenSize, double _lr, int _iters, boolean _hasReg){
         L = FeatureFactory.allVecs;
         wordToNum = FeatureFactory.wordToNum;
         predictions = new HashMap<String, String>();
 
-        iterations = 20;
+        iterations = _iters;
+        hasRegularization = _hasReg;
 		windowSize = _windowSize;
         hiddenSize = _hiddenSize;
         learningRate = _lr;
@@ -88,9 +90,9 @@ public class WindowModel {
 
                 int labelNum = labelToIndex.get(trainData.get(datumIndex).label);
                 List<SimpleMatrix> deltas = getDeltas(labelNum, vectorH, vectorP);
-                List<SimpleMatrix> gradients = getGradients(false, vectorX, vectorH, deltas);
+                List<SimpleMatrix> gradients = getGradients(vectorX, vectorH, deltas);
                 
-                //check = gradCheck(regOn, vec, W, U, y, grads);
+                gradientCheck(vectorX, gradients);
                 
                 oneSGD(gradients, wordNums);
             }
@@ -104,12 +106,8 @@ public class WindowModel {
         for (int i = 0; i<NUM_PREDICTION_CLASSES; i++) {
             delta2.set(i, 0, vectorP.get(i,0) - (i == labelNum ? 1 : 0));
         }
-        
         SimpleMatrix delta1 = elementWiseMultMat(removeConstRow(U.transpose().mult(delta2)), elementWiseTanhGrad(vectorH));    
         SimpleMatrix delta0 = W.transpose().mult(delta1);    
-        // System.out.println("delta0: " + delta0.numRows() + ", " + delta0.numCols());
-        // System.out.println("delta1: " + delta1.numRows() + ", " + delta1.numCols());
-        // System.out.println("delta2: " + delta2.numRows() + ", " + delta2.numCols());
         deltas.add(delta0);
         deltas.add(delta1);
         deltas.add(delta2); //put them in intuitive order!
@@ -117,7 +115,7 @@ public class WindowModel {
         return deltas;
     }
 
-    private List<SimpleMatrix> getGradients(boolean hasRegularization, SimpleMatrix vectorX, SimpleMatrix vectorH, List<SimpleMatrix> deltas){
+    private List<SimpleMatrix> getGradients(SimpleMatrix vectorX, SimpleMatrix vectorH, List<SimpleMatrix> deltas){
         List<SimpleMatrix> gradients = new ArrayList<SimpleMatrix>();
         if (hasRegularization) {
             // TODO: add regularization
@@ -132,12 +130,18 @@ public class WindowModel {
             partialU.insertIntoThis(0, U.numRows()-1, deltas.get(2)); //partial{J}{b2}
             gradients.add(partialU);
         }
-
-        // System.out.println("partialx: " + gradients.get(0).numRows() + ", " + gradients.get(0).numCols());
-        // System.out.println("partialW: " + gradients.get(1).numRows() + ", " + gradients.get(1).numCols());
-        // System.out.println("partialU: " + gradients.get(2).numRows() + ", " + gradients.get(2).numCols());
-
         return gradients;
+    }
+
+    private void 
+
+    private void gradientCheck(SimpleMatrix vectorX, List<SimpleMatrix> gradients) {
+        
+        if (hasRegularization) {
+            // TODO: stuff here
+        } else {
+            // TODO: here too!
+        }
     }
 
     private void oneSGD(List<SimpleMatrix> gradients, List<Integer> wordNums){
