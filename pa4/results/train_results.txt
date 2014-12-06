@@ -1,0 +1,148 @@
+************************** NEW RUN **************************
+-------------------- Iteration 0 --------------------
+processed 204567 tokens with 34043 phrases; found: 168835 phrases; correct: 7028.
+accuracy:  17.30%; precision:   4.16%; recall:  20.64%; FB1:   6.93
+            I-LOC: precision:  11.69%; recall:  20.09%; FB1:  14.78  14263
+           I-MISC: precision:   2.60%; recall:  14.70%; FB1:   4.42  25948
+            I-ORG: precision:  32.05%; recall:   9.13%; FB1:  14.21  2855
+            I-PER: precision:   3.00%; recall:  33.89%; FB1:   5.51  125769
+-------------------- Iteration 1 --------------------
+processed 204567 tokens with 34043 phrases; found: 30755 phrases; correct: 22716.
+accuracy:  92.58%; precision:  73.86%; recall:  66.73%; FB1:  70.11
+            I-LOC: precision:  66.19%; recall:  84.51%; FB1:  74.24  10593
+           I-MISC: precision:  69.08%; recall:  39.30%; FB1:  50.10  2613
+            I-ORG: precision:  67.04%; recall:  42.85%; FB1:  52.29  6408
+            I-PER: precision:  86.20%; recall:  86.30%; FB1:  86.25  11141
+-------------------- Iteration 2 --------------------
+processed 204567 tokens with 34043 phrases; found: 30113 phrases; correct: 23712.
+accuracy:  93.71%; precision:  78.74%; recall:  69.65%; FB1:  73.92
+            I-LOC: precision:  72.63%; recall:  84.21%; FB1:  77.99  9620
+           I-MISC: precision:  75.86%; recall:  46.33%; FB1:  57.53  2805
+            I-ORG: precision:  72.80%; recall:  47.47%; FB1:  57.47  6537
+            I-PER: precision:  88.23%; recall:  88.41%; FB1:  88.32  11151
+-------------------- Iteration 3 --------------------
+processed 204567 tokens with 34043 phrases; found: 29915 phrases; correct: 24244.
+accuracy:  94.30%; precision:  81.04%; recall:  71.22%; FB1:  75.81
+            I-LOC: precision:  75.00%; recall:  85.01%; FB1:  79.69  9404
+           I-MISC: precision:  77.10%; recall:  48.53%; FB1:  59.57  2891
+            I-ORG: precision:  75.36%; recall:  50.67%; FB1:  60.60  6741
+            I-PER: precision:  90.84%; recall:  88.80%; FB1:  89.81  10879
+-------------------- Iteration 4 --------------------
+processed 204567 tokens with 34043 phrases; found: 29787 phrases; correct: 24541.
+accuracy:  94.59%; precision:  82.39%; recall:  72.09%; FB1:  76.89
+            I-LOC: precision:  77.41%; recall:  84.36%; FB1:  80.74  9041
+           I-MISC: precision:  79.99%; recall:  51.88%; FB1:  62.94  2979
+            I-ORG: precision:  76.26%; recall:  52.17%; FB1:  61.96  6858
+            I-PER: precision:  91.02%; recall:  89.23%; FB1:  90.11  10909
+-------------------- Iteration 5 --------------------
+processed 204567 tokens with 34043 phrases; found: 30036 phrases; correct: 25011.
+accuracy:  94.88%; precision:  83.27%; recall:  73.47%; FB1:  78.06
+            I-LOC: precision:  78.02%; recall:  84.67%; FB1:  81.21  9004
+           I-MISC: precision:  81.64%; recall:  57.11%; FB1:  67.20  3213
+            I-ORG: precision:  78.03%; recall:  54.01%; FB1:  63.84  6940
+            I-PER: precision:  91.44%; recall:  89.40%; FB1:  90.41  10879
+-------------------- Iteration 6 --------------------
+processed 204567 tokens with 34043 phrases; found: 30178 phrases; correct: 25349.
+accuracy:  95.12%; precision:  84.00%; recall:  74.46%; FB1:  78.94
+            I-LOC: precision:  78.73%; recall:  85.14%; FB1:  81.81  8972
+           I-MISC: precision:  82.76%; recall:  58.33%; FB1:  68.43  3237
+            I-ORG: precision:  79.03%; recall:  55.55%; FB1:  65.24  7047
+            I-PER: precision:  91.90%; recall:  90.20%; FB1:  91.04  10922
+-------------------- Iteration 7 --------------------
+processed 204567 tokens with 34043 phrases; found: 30325 phrases; correct: 25573.
+accuracy:  95.30%; precision:  84.33%; recall:  75.12%; FB1:  79.46
+            I-LOC: precision:  78.86%; recall:  85.52%; FB1:  82.06  8998
+           I-MISC: precision:  82.96%; recall:  58.39%; FB1:  68.54  3233
+            I-ORG: precision:  79.50%; recall:  56.99%; FB1:  66.39  7186
+            I-PER: precision:  92.43%; recall:  90.60%; FB1:  91.50  10908
+-------------------- Iteration 8 --------------------
+processed 204567 tokens with 34043 phrases; found: 30449 phrases; correct: 25807.
+accuracy:  95.46%; precision:  84.75%; recall:  75.81%; FB1:  80.03
+            I-LOC: precision:  78.92%; recall:  86.02%; FB1:  82.32  9043
+           I-MISC: precision:  83.53%; recall:  59.74%; FB1:  69.66  3285
+            I-ORG: precision:  80.16%; recall:  58.07%; FB1:  67.35  7263
+            I-PER: precision:  93.06%; recall:  90.80%; FB1:  91.91  10858
+-------------------- Iteration 9 --------------------
+processed 204567 tokens with 34043 phrases; found: 30451 phrases; correct: 25924.
+accuracy:  95.55%; precision:  85.13%; recall:  76.15%; FB1:  80.39
+            I-LOC: precision:  79.18%; recall:  86.08%; FB1:  82.49  9020
+           I-MISC: precision:  83.83%; recall:  60.51%; FB1:  70.28  3315
+            I-ORG: precision:  80.67%; recall:  58.61%; FB1:  67.90  7284
+            I-PER: precision:  93.49%; recall:  91.00%; FB1:  92.23  10832
+-------------------- Iteration 10 --------------------
+processed 204567 tokens with 34043 phrases; found: 30643 phrases; correct: 26068.
+accuracy:  95.57%; precision:  85.07%; recall:  76.57%; FB1:  80.60
+            I-LOC: precision:  79.75%; recall:  86.18%; FB1:  82.84  8966
+           I-MISC: precision:  81.46%; recall:  60.94%; FB1:  69.72  3436
+            I-ORG: precision:  80.83%; recall:  59.79%; FB1:  68.73  7416
+            I-PER: precision:  93.53%; recall:  90.99%; FB1:  92.24  10825
+-------------------- Iteration 11 --------------------
+processed 204567 tokens with 34043 phrases; found: 30766 phrases; correct: 26304.
+accuracy:  95.70%; precision:  85.50%; recall:  77.27%; FB1:  81.17
+            I-LOC: precision:  80.20%; recall:  86.32%; FB1:  83.15  8930
+           I-MISC: precision:  82.64%; recall:  63.20%; FB1:  71.63  3513
+            I-ORG: precision:  81.06%; recall:  61.02%; FB1:  69.63  7546
+            I-PER: precision:  93.92%; recall:  90.96%; FB1:  92.42  10777
+-------------------- Iteration 12 --------------------
+processed 204567 tokens with 34043 phrases; found: 30821 phrases; correct: 26411.
+accuracy:  95.77%; precision:  85.69%; recall:  77.58%; FB1:  81.44
+            I-LOC: precision:  80.26%; recall:  86.39%; FB1:  83.21  8931
+           I-MISC: precision:  82.93%; recall:  64.29%; FB1:  72.43  3561
+            I-ORG: precision:  81.14%; recall:  61.74%; FB1:  70.12  7628
+            I-PER: precision:  94.39%; recall:  90.77%; FB1:  92.55  10701
+-------------------- Iteration 13 --------------------
+processed 204567 tokens with 34043 phrases; found: 30717 phrases; correct: 26417.
+accuracy:  95.82%; precision:  86.00%; recall:  77.60%; FB1:  81.58
+            I-LOC: precision:  80.37%; recall:  86.36%; FB1:  83.26  8915
+           I-MISC: precision:  82.95%; recall:  64.49%; FB1:  72.56  3571
+            I-ORG: precision:  81.78%; recall:  61.71%; FB1:  70.34  7564
+            I-PER: precision:  94.72%; recall:  90.80%; FB1:  92.72  10667
+-------------------- Iteration 14 --------------------
+processed 204567 tokens with 34043 phrases; found: 30737 phrases; correct: 26464.
+accuracy:  95.86%; precision:  86.10%; recall:  77.74%; FB1:  81.70
+            I-LOC: precision:  80.45%; recall:  86.27%; FB1:  83.26  8898
+           I-MISC: precision:  83.35%; recall:  65.16%; FB1:  73.14  3591
+            I-ORG: precision:  81.85%; recall:  61.92%; FB1:  70.50  7583
+            I-PER: precision:  94.76%; recall:  90.82%; FB1:  92.75  10665
+-------------------- Iteration 15 --------------------
+processed 204567 tokens with 34043 phrases; found: 30843 phrases; correct: 26604.
+accuracy:  95.94%; precision:  86.26%; recall:  78.15%; FB1:  82.00
+            I-LOC: precision:  80.36%; recall:  86.63%; FB1:  83.38  8945
+           I-MISC: precision:  83.73%; recall:  66.69%; FB1:  74.25  3658
+            I-ORG: precision:  82.33%; recall:  62.48%; FB1:  71.05  7608
+            I-PER: precision:  94.89%; recall:  90.66%; FB1:  92.73  10632
+-------------------- Iteration 16 --------------------
+processed 204567 tokens with 34043 phrases; found: 30912 phrases; correct: 26690.
+accuracy:  95.98%; precision:  86.34%; recall:  78.40%; FB1:  82.18
+            I-LOC: precision:  80.55%; recall:  86.74%; FB1:  83.53  8935
+           I-MISC: precision:  83.87%; recall:  67.36%; FB1:  74.72  3689
+            I-ORG: precision:  82.74%; recall:  62.96%; FB1:  71.51  7629
+            I-PER: precision:  94.63%; recall:  90.65%; FB1:  92.60  10659
+-------------------- Iteration 17 --------------------
+processed 204567 tokens with 34043 phrases; found: 30866 phrases; correct: 26692.
+accuracy:  96.00%; precision:  86.48%; recall:  78.41%; FB1:  82.24
+            I-LOC: precision:  80.74%; recall:  85.87%; FB1:  83.23  8825
+           I-MISC: precision:  83.21%; recall:  68.74%; FB1:  75.28  3794
+            I-ORG: precision:  83.09%; recall:  63.29%; FB1:  71.85  7636
+            I-PER: precision:  94.85%; recall:  90.45%; FB1:  92.60  10611
+-------------------- Iteration 18 --------------------
+processed 204567 tokens with 34043 phrases; found: 30909 phrases; correct: 26754.
+accuracy:  96.04%; precision:  86.56%; recall:  78.59%; FB1:  82.38
+            I-LOC: precision:  80.84%; recall:  85.98%; FB1:  83.33  8825
+           I-MISC: precision:  83.18%; recall:  69.15%; FB1:  75.52  3818
+            I-ORG: precision:  83.20%; recall:  63.63%; FB1:  72.11  7667
+            I-PER: precision:  94.96%; recall:  90.45%; FB1:  92.65  10599
+-------------------- Iteration 19 --------------------
+processed 204567 tokens with 34043 phrases; found: 30919 phrases; correct: 26820.
+accuracy:  96.09%; precision:  86.74%; recall:  78.78%; FB1:  82.57
+            I-LOC: precision:  81.02%; recall:  85.97%; FB1:  83.42  8804
+           I-MISC: precision:  83.63%; recall:  69.63%; FB1:  75.99  3824
+            I-ORG: precision:  83.41%; recall:  64.00%; FB1:  72.43  7692
+            I-PER: precision:  95.04%; recall:  90.52%; FB1:  92.72  10599
+-------------------- Iteration 20 --------------------
+processed 204567 tokens with 34043 phrases; found: 30980 phrases; correct: 26926.
+accuracy:  96.15%; precision:  86.91%; recall:  79.09%; FB1:  82.82
+            I-LOC: precision:  81.16%; recall:  86.08%; FB1:  83.55  8800
+           I-MISC: precision:  83.82%; recall:  71.06%; FB1:  76.92  3894
+            I-ORG: precision:  83.63%; recall:  64.23%; FB1:  72.66  7699
+            I-PER: precision:  95.22%; recall:  90.59%; FB1:  92.85  10587

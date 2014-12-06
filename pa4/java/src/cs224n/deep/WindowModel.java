@@ -15,7 +15,7 @@ public class WindowModel {
     private HashMap<String, Integer> wordToNum;
     private HashMap<String, String> predictions;
 
-	public int windowSize, wordSize, hiddenSize, iterations;
+	public int windowSize, wordSize, hiddenSize;
     public double learningRate;
     public boolean hasRegularization;
 
@@ -27,12 +27,11 @@ public class WindowModel {
     public static final String BEGIN_TOKEN = "<s>";
     public static final String END_TOKEN = "</s>";
 
-	public WindowModel(int _windowSize, int _hiddenSize, double _lr, int _iters, boolean _hasReg){
+	public WindowModel(int _windowSize, int _hiddenSize, double _lr, boolean _hasReg){
         L = FeatureFactory.allVecs;
         wordToNum = FeatureFactory.wordToNum;
         predictions = new HashMap<String, String>();
 
-        iterations = _iters;
         hasRegularization = _hasReg;
 		windowSize = _windowSize;
         hiddenSize = _hiddenSize;
@@ -66,25 +65,22 @@ public class WindowModel {
 	 * Simplest SGD training 
 	 */
 	public void train(List<Datum> trainData){
-        for (int i = 0; i< iterations; i++) {
-            System.out.println("Iteration: " + i);
-            for (int datumIndex = 0; datumIndex < trainData.size(); datumIndex++) {
-                
-                List<Integer> wordNums = generateWordNumList(trainData, windowSize, datumIndex);
-                SimpleMatrix vectorX = generateWindow(trainData, windowSize, datumIndex);
-                SimpleMatrix vectorZ = W.mult(vectorX);
-                SimpleMatrix vectorH = tanh(vectorZ);
-                SimpleMatrix vectorV = U.mult(addConstRow(vectorH));
-                SimpleMatrix vectorP = softmax(vectorV);
+        for (int datumIndex = 0; datumIndex < trainData.size(); datumIndex++) {
+            
+            List<Integer> wordNums = generateWordNumList(trainData, windowSize, datumIndex);
+            SimpleMatrix vectorX = generateWindow(trainData, windowSize, datumIndex);
+            SimpleMatrix vectorZ = W.mult(vectorX);
+            SimpleMatrix vectorH = tanh(vectorZ);
+            SimpleMatrix vectorV = U.mult(addConstRow(vectorH));
+            SimpleMatrix vectorP = softmax(vectorV);
 
-                int labelNum = labelToIndex.get(trainData.get(datumIndex).label);
-                List<SimpleMatrix> deltas = getDeltas(labelNum, vectorH, vectorP);
-                List<SimpleMatrix> gradients = getGradients(vectorX, vectorH, deltas);
-                
-                // gradientCheck(labelNum, vectorX, gradients, true, true, true);
-                
-                oneSGD(gradients, wordNums);
-            }
+            int labelNum = labelToIndex.get(trainData.get(datumIndex).label);
+            List<SimpleMatrix> deltas = getDeltas(labelNum, vectorH, vectorP);
+            List<SimpleMatrix> gradients = getGradients(vectorX, vectorH, deltas);
+            
+            // gradientCheck(labelNum, vectorX, gradients, true, true, true);
+            
+            oneSGD(gradients, wordNums);
         }
 	}
 

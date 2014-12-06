@@ -41,7 +41,7 @@ public class NER {
     
     public static void main(String[] args) throws IOException {
         if (args.length < 3) {
-            System.out.println("USAGE: java -cp classes NER ../data/train ../data/dev ../output/output1");
+            System.out.println("USAGE: java -cp classes NER ../data/train ../data/dev ../output/output1 (NUM_ITERS)");
             return;
         }
 
@@ -52,7 +52,6 @@ public class NER {
         // read output file name
         String outputFileName = args[2];
 
-
         //	read the train and test data
         FeatureFactory.initializeVocab("../data/vocab_glove.txt");
 
@@ -60,21 +59,41 @@ public class NER {
         SimpleMatrix allVecs= FeatureFactory.readWordVectors("../data/wordVectors_glove.txt");
 
         // randomly initialize word vectors
-//        SimpleMatrix allVecs = FeatureFactory.randomInitializeWordVectors(50, FeatureFactory.wordToNum.size());
+        // SimpleMatrix allVecs = FeatureFactory.randomInitializeWordVectors(50, FeatureFactory.wordToNum.size());
 
 
         // initialize model
-    	WindowModel model = new WindowModel(3, 20, 0.001, 20, false);
+        int iterations = 20;
+        if (args.length > 3) {
+            iterations = Integer.parseInt(args[3]);
+        }
+
+    	// Baseline model
+        // BaselineModel model = new BaselineModel();
+        
+        WindowModel model = new WindowModel(3, 20, 0.001, false);
     	model.initWeights();
 
-        // Baseline model
-        // BaselineModel model = new BaselineModel();
-
-        model.train(trainData);
-        model.test(testData);
+        model.test(testData); //test result
         Map<String, String> predictions= model.getPredictions();
-        writeResults(outputFileName, testData, predictions);
+        writeResults(outputFileName+"_dev_iter0", testData, predictions);
+        
+        model.test(trainData); //also get train F1
+        predictions= model.getPredictions();
+        writeResults(outputFileName+"_train_iter0", trainData, predictions);
 
+        for (int i = 1; i<= iterations; i++) {
+            System.out.println("Iteration: " + i);
+        
+            model.train(trainData);
+            model.test(testData); //test result
+            predictions= model.getPredictions();
+            writeResults(outputFileName+"_dev_iter"+i, testData, predictions);
+            
+            model.test(trainData); //also get train F1
+            predictions= model.getPredictions();
+            writeResults(outputFileName+"_train_iter"+i, trainData, predictions);
+        }
 
     }
 }
