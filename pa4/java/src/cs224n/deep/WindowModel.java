@@ -10,15 +10,14 @@ import java.text.*;
 
 public class WindowModel {
 
-	protected SimpleMatrix L, W, U, biasVec, Wout;
+	protected SimpleMatrix L, W, U, W2;
 
     private HashMap<String, Integer> wordToNum;
     private HashMap<String, String> predictions;
 
-	public int windowSize, wordSize, hiddenSize;
+	public int windowSize, wordSize, hiddenSize, hiddenSize2;
     public double learningRate, lambda;
-    public boolean hasRegularization;
-    public boolean useSequenceModel;
+    public boolean hasRegularization, useSequenceModel, deeperLearning;
     private int additionalDim;
 
     public String[] predictionLabels = new String[]{"O", "LOC", "MISC", "ORG", "PER"};
@@ -30,7 +29,7 @@ public class WindowModel {
     public static final String BEGIN_TOKEN = "<s>";
     public static final String END_TOKEN = "</s>";
 
-	public WindowModel(int _windowSize, int _hiddenSize, double _lr, boolean _hasReg, double _lambda, boolean _useSeqModel){
+	public WindowModel(int _windowSize, int _hiddenSize, double _lr, boolean _hasReg, double _lambda, boolean _useSeqModel, boolean _deeper, int _hiddenSize2){
         L = FeatureFactory.allVecs;
         wordToNum = FeatureFactory.wordToNum;
         predictions = new HashMap<String, String>();
@@ -38,6 +37,7 @@ public class WindowModel {
         hasRegularization = _hasReg;
 		windowSize = _windowSize;
         hiddenSize = _hiddenSize;
+        hiddenSize2 = _hiddenSize2;
         learningRate = _lr;
         lambda = _lambda;
         wordSize = L.numRows();
@@ -65,9 +65,13 @@ public class WindowModel {
 
         // initialize bias vector randomly to avoid overfitting
         this.W = SimpleMatrix.random(hiddenSize, wordSize * windowSize  + 1 + additionalDim, -epsilon, epsilon, new Random());
-        this.U = SimpleMatrix.random(NUM_PREDICTION_CLASSES, hiddenSize + 1, -epsilon, epsilon, new Random());
-
-	}
+        if (deeperLearning) {
+            this.W2 = SimpleMatrix.random(hiddenSize2, hiddenSize + 1, -epsilon, epsilon, new Random());
+            this.U = SimpleMatrix.random(NUM_PREDICTION_CLASSES, hiddenSize2 + 1, -epsilon, epsilon, new Random());
+        } else {
+            this.U = SimpleMatrix.random(NUM_PREDICTION_CLASSES, hiddenSize + 1, -epsilon, epsilon, new Random());
+        }
+    }
 
 
 	/**
@@ -75,18 +79,35 @@ public class WindowModel {
 	 */
 	public void train(List<Datum> trainData){
         previousPredictions = null;
+
         for (int datumIndex = 0; datumIndex < trainData.size(); datumIndex++) {
+
+            List<SimpleMatrix> vectors = new ArrayList<SimpleMatrix>();
 
             List<Integer> wordNums = generateWordNumList(trainData, windowSize, datumIndex);
             SimpleMatrix vectorX = generateWindow(trainData, windowSize, datumIndex);
+            vectors.add(vectorX);
             SimpleMatrix vectorZ = W.mult(vectorX);
+            vectors.add(vectorZ);
             SimpleMatrix vectorH = tanh(vectorZ);
-            SimpleMatrix vectorV = U.mult(addConstRow(vectorH));
+            vectors.add(vectorH);
+            SimpleMatrix vectorV = null;
+            if (deeperLearning) {
+                SimpleMatrix vectorVmid = W2.mult(addConstRow(vectorH));
+                vectors.add(vectorVmid);
+                SimpleMatrix vectorHmid = tanh(vectorVmid);
+                vectors.add(vectorHmid);
+                vectorV = U.mult(addConstRow(vectorHmid));
+            } else {
+                vectorV = U.mult(addConstRow(vectorH));
+            }
+            vectors.add(vectorV);
             SimpleMatrix vectorP = softmax(vectorV);
+            vectors.add(vectorP);
             
             int labelNum = labelToIndex.get(trainData.get(datumIndex).label);
-            List<SimpleMatrix> deltas = getDeltas(labelNum, vectorH, vectorP);
-            List<SimpleMatrix> gradients = getGradients(vectorX, vectorH, deltas);
+            List<SimpleMatrix> deltas = getDeltas(labelNum, vectors);
+            List<SimpleMatrix> gradients = getGradients(vectors, deltas);
             
             // gradientCheck(labelNum, vectorX, gradients, true, true, true);
             
@@ -100,36 +121,72 @@ public class WindowModel {
         }
 	}
 
-    private List<SimpleMatrix> getDeltas(int labelNum, SimpleMatrix vectorH, SimpleMatrix vectorP){
+    private List<SimpleMatrix> getDeltas(int labelNum, List<SimpleMatrix> vectors){
         List<SimpleMatrix> deltas = new ArrayList<SimpleMatrix>();
-        
+        SimpleMatrix vectorP = vectors.get(vectors.size()-1);
+
         SimpleMatrix delta2 = new SimpleMatrix(NUM_PREDICTION_CLASSES,1);
         for (int i = 0; i<NUM_PREDICTION_CLASSES; i++) {
             delta2.set(i, 0, vectorP.get(i,0) - (i == labelNum ? 1 : 0));
         }
-        SimpleMatrix delta1 = elementWiseMultMat(removeConstRow(U.transpose().mult(delta2)), elementWiseTanhGrad(vectorH));    
-        SimpleMatrix delta0 = W.transpose().mult(delta1);    
+        SimpleMatrix delta1mid = null;
+        SimpleMatrix delta1 = null;
+        SimpleMatrix delta0 = null;
+        if (deeperLearning) {
+            delta1mid = elementWiseMultMat(removeConstRow(U.transpose().mult(delta2)), elementWiseTanhGrad(vectors.get(4)));    
+            delta1 = elementWiseMultMat(removeConstRow(W2.transpose().mult(delta1mid)), elementWiseTanhGrad(vectors.get(2)));    
+            delta0 = W.transpose().mult(delta1);    
+        } else {
+            delta1 = elementWiseMultMat(removeConstRow(U.transpose().mult(delta2)), elementWiseTanhGrad(vectors.get(2)));    
+            delta0 = W.transpose().mult(delta1);    
+        }
         deltas.add(delta0);
         deltas.add(delta1);
+        if (deeperLearning){
+            deltas.add(delta1mid);
+        }
         deltas.add(delta2); //put them in intuitive order!
-        
         return deltas;
     }
 
-    private List<SimpleMatrix> getGradients(SimpleMatrix vectorX, SimpleMatrix vectorH, List<SimpleMatrix> deltas){
+    private List<SimpleMatrix> getGradients(List<SimpleMatrix> vectors, List<SimpleMatrix> deltas){
         List<SimpleMatrix> gradients = new ArrayList<SimpleMatrix>();
+        SimpleMatrix vectorX = vectors.get(0);
         gradients.add(removeConstRow(deltas.get(0))); //partial{J}{x}
         SimpleMatrix partialW = new SimpleMatrix(W.numRows(), W.numCols());
         partialW.insertIntoThis(0, 0, deltas.get(1).mult(vectorX.transpose()));//partial{J}{W}
         partialW.insertIntoThis(0, W.numCols()-1, deltas.get(1));//partial{J}{b1}
-        SimpleMatrix partialU = new SimpleMatrix(U.numRows(), U.numCols());
-        partialU.insertIntoThis(0, 0, deltas.get(2).mult(vectorH.transpose())); //partial{J}{U}
-        partialU.insertIntoThis(0, U.numCols()-1, deltas.get(2)); //partial{J}{b2}
+        
+        SimpleMatrix partialW2 = null;
+        SimpleMatrix partialU = null;
+
+        if (deeperLearning) {
+            partialW2 = new SimpleMatrix(W2.numRows(), W2.numCols());
+            partialW2.insertIntoThis(0, 0, deltas.get(3).mult(vectors.get(4).transpose())); //partial{J}{U}
+            partialW2.insertIntoThis(0, W2.numCols()-1, deltas.get(3)); //partial{J}{b2}
+
+            partialU = new SimpleMatrix(U.numRows(), U.numCols());
+            partialU.insertIntoThis(0, 0, deltas.get(2).mult(vectors.get(2).transpose())); //partial{J}{U}
+            partialU.insertIntoThis(0, U.numCols()-1, deltas.get(2)); //partial{J}{b2}
+
+        } else {
+            partialU = new SimpleMatrix(U.numRows(), U.numCols());
+            partialU.insertIntoThis(0, 0, deltas.get(2).mult(vectors.get(2).transpose())); //partial{J}{U}
+            partialU.insertIntoThis(0, U.numCols()-1, deltas.get(2)); //partial{J}{b2}
+        }
+
         if (hasRegularization) {
             partialW = partialW.plus(elementWiseMultScalar(W, lambda));
+            if (deeperLearning) {
+                partialW2 = partialW2.plus(elementWiseMultScalar(W2, lambda));
+            }
             partialU = partialU.plus(elementWiseMultScalar(U, lambda));
         }
+
         gradients.add(partialW);
+        if (deeperLearning) {
+            gradients.add(partialW2);
+        }
         gradients.add(partialU);
         return gradients;
     }
@@ -141,6 +198,10 @@ public class WindowModel {
             SimpleMatrix newW = setConstColToZero(W);
             SimpleMatrix newU = setConstColToZero(U);
             regCost = (elementWiseMultMat(newW, newW).elementSum() + elementWiseMultMat(newU, newU).elementSum()) * lambda / 2;
+            if (deeperLearning){
+                SimpleMatrix newW2 = setConstColToZero(W2);
+                regCost += elementWiseMultMat(newW2, newW2).elementSum() * lambda / 2
+            }
         }
         return -Math.log(vectorP.get(labelNum, 0)) + regCost;
     }
@@ -170,7 +231,7 @@ public class WindowModel {
 
                 // System.out.println(partialX.get(i,0) + ", " + numericalPartialX.get(i,0));
                 if (Math.abs(partialX.get(i,0) - numericalPartialX.get(i,0)) > maxAbs) {
-                    System.out.println("Gradient check failed at partial X. Aborting.");
+                    System.out.println("Gradient check failed at partial X. Problem at position: " + i);
                 }
             }
         }
@@ -199,9 +260,16 @@ public class WindowModel {
                     }
                 }
             }
+            if (deeperLearning) { // check W2
+                // TODO
+            }
         }
         if (checkU) {
-            SimpleMatrix partialU = gradients.get(2);
+            if (deeperLearning) {
+                SimpleMatrix partialU = gradients.get(3);
+            } else {
+                SimpleMatrix partialU = gradients.get(2);
+            }
             SimpleMatrix numericalPartialU = new SimpleMatrix(partialU.numRows(), partialU.numCols());
             SimpleMatrix maskU = new SimpleMatrix(U.numRows(), U.numCols());
             for (int i=0; i<partialU.numRows(); i+=10){ //skipping by 10 to save time. Also ran with i++ for one whole iteration
@@ -235,7 +303,12 @@ public class WindowModel {
             L.insertIntoThis(0, wordNums.get(i), newL);
         }
         W = W.plus(elementWiseMultScalar(gradients.get(1), -learningRate));
-        U = U.plus(elementWiseMultScalar(gradients.get(2), -learningRate));
+        if (deeperLearning) {
+            W2 = W2.plus(elementWiseMultScalar(gradients.get(2), -learningRate));
+            U = U.plus(elementWiseMultScalar(gradients.get(3), -learningRate));
+        } else {
+            U = U.plus(elementWiseMultScalar(gradients.get(2), -learningRate));
+        }
     }
 
     private SimpleMatrix removeConstRow(SimpleMatrix m){
@@ -311,7 +384,14 @@ public class WindowModel {
     private SimpleMatrix forwardProp(SimpleMatrix vectorX) {
         SimpleMatrix vectorZ = W.mult(vectorX);
         SimpleMatrix vectorH = tanh(vectorZ);
-        SimpleMatrix vectorV = U.mult(addConstRow(vectorH));
+        SimpleMatrix vectorV = null;
+        if (deeperLearning) {
+            SimpleMatrix vectorVmid = W2.mult(addConstRow(vectorH));
+            SimpleMatrix vectorHmid = tanh(vectorVmid);
+            vectorV = U.mult(addConstRow(vectorHmid));
+        } else {
+            vectorV = U.mult(addConstRow(vectorH));
+        }
         SimpleMatrix vectorP = softmax(vectorV);
 
         return vectorP;
