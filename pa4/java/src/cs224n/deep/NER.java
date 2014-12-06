@@ -54,8 +54,14 @@ public class NER {
 
 
         //	read the train and test data
-        FeatureFactory.initializeVocab("../data/vocab.txt");
-        SimpleMatrix allVecs= FeatureFactory.readWordVectors("../data/wordVectors.txt");
+        FeatureFactory.initializeVocab("../data/vocab_glove.txt");
+
+        // load word vectors from file
+        SimpleMatrix allVecs= FeatureFactory.readWordVectors("../data/wordVectors_glove.txt");
+
+        // randomly initialize word vectors
+//        SimpleMatrix allVecs = FeatureFactory.randomInitializeWordVectors(50, FeatureFactory.wordToNum.size());
+
 
         // initialize model
     	WindowModel model = new WindowModel(3, 20, 0.001, 20, false);

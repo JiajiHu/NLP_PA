@@ -127,6 +127,22 @@ public class FeatureFactory {
             line = br.readLine();
         }
         br.close();
+
 	}
+
+
+    public static SimpleMatrix randomInitializeWordVectors(int vectorDimension, int numVectors) {
+        allVecs = new SimpleMatrix(vectorDimension, numVectors);
+
+        Random generator = new Random();
+        for (int colIdx = 0; colIdx < numVectors; colIdx++) {
+            for (int rowIdx = 0; rowIdx < vectorDimension; rowIdx++) {
+                double val = generator.nextDouble() * 2 - 1.0; // rand value between -1.0 and 1.0
+                allVecs.set(rowIdx, colIdx, val);
+            }
+        }
+
+        return allVecs;
+    }
 
 }
