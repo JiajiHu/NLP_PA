@@ -13,9 +13,10 @@ public class NER {
         try {
             writer = new BufferedWriter(new OutputStreamWriter(new FileOutputStream(outputFileName), "utf-8"));
             for (Datum d : testData) {
-                String word = d.word;
+                String word = d.word.toLowerCase();
                 String label = d.label;
-                String prediction = BaselineModel.UNKNOWN_TAG;
+
+                String prediction = "O";
                 if (predictions != null && predictions.containsKey(word)) {
                     prediction = predictions.get(word);
 
@@ -57,7 +58,7 @@ public class NER {
         SimpleMatrix allVecs= FeatureFactory.readWordVectors("../data/wordVectors.txt");
 
         // initialize model
-    	WindowModel model = new WindowModel(3, 10,0.001);
+    	WindowModel model = new WindowModel(3, 100,0.001);
     	model.initWeights();
 
         // Baseline model
@@ -67,6 +68,7 @@ public class NER {
         model.test(testData);
         Map<String, String> predictions= model.getPredictions();
         writeResults(outputFileName, testData, predictions);
+
 
     }
 }
