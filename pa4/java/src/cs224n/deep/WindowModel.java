@@ -16,7 +16,7 @@ public class WindowModel {
     private HashMap<String, String> predictions;
 
 	public int windowSize, wordSize, hiddenSize;
-    public double learningRate;
+    public double learningRate, lambda;
     public boolean hasRegularization;
 
     public String[] predictionLabels = new String[]{"O", "LOC", "MISC", "ORG", "PER"};
@@ -27,7 +27,7 @@ public class WindowModel {
     public static final String BEGIN_TOKEN = "<s>";
     public static final String END_TOKEN = "</s>";
 
-	public WindowModel(int _windowSize, int _hiddenSize, double _lr, boolean _hasReg){
+	public WindowModel(int _windowSize, int _hiddenSize, double _lr, boolean _hasReg, double _lambda){
         L = FeatureFactory.allVecs;
         wordToNum = FeatureFactory.wordToNum;
         predictions = new HashMap<String, String>();
@@ -36,6 +36,7 @@ public class WindowModel {
 		windowSize = _windowSize;
         hiddenSize = _hiddenSize;
         learningRate = _lr;
+        lambda = _lambda;
         wordSize = L.numRows();
 
         int labelIndex = 0;
@@ -66,7 +67,7 @@ public class WindowModel {
 	 */
 	public void train(List<Datum> trainData){
         for (int datumIndex = 0; datumIndex < trainData.size(); datumIndex++) {
-            
+
             List<Integer> wordNums = generateWordNumList(trainData, windowSize, datumIndex);
             SimpleMatrix vectorX = generateWindow(trainData, windowSize, datumIndex);
             SimpleMatrix vectorZ = W.mult(vectorX);
@@ -102,102 +103,109 @@ public class WindowModel {
 
     private List<SimpleMatrix> getGradients(SimpleMatrix vectorX, SimpleMatrix vectorH, List<SimpleMatrix> deltas){
         List<SimpleMatrix> gradients = new ArrayList<SimpleMatrix>();
+        gradients.add(removeConstRow(deltas.get(0))); //partial{J}{x}
+        SimpleMatrix partialW = new SimpleMatrix(W.numRows(), W.numCols());
+        partialW.insertIntoThis(0, 0, deltas.get(1).mult(vectorX.transpose()));//partial{J}{W}
+        partialW.insertIntoThis(0, W.numCols()-1, deltas.get(1));//partial{J}{b1}
+        SimpleMatrix partialU = new SimpleMatrix(U.numRows(), U.numCols());
+        partialU.insertIntoThis(0, 0, deltas.get(2).mult(vectorH.transpose())); //partial{J}{U}
+        partialU.insertIntoThis(0, U.numCols()-1, deltas.get(2)); //partial{J}{b2}
         if (hasRegularization) {
-            // TODO: add regularization
-        } else {
-            gradients.add(removeConstRow(deltas.get(0))); //partial{J}{x}
-            SimpleMatrix partialW = new SimpleMatrix(W.numRows(), W.numCols());
-            partialW.insertIntoThis(0, 0, deltas.get(1).mult(vectorX.transpose()));//partial{J}{W}
-            partialW.insertIntoThis(0, W.numCols()-1, deltas.get(1));//partial{J}{b1}
-            gradients.add(partialW);
-            SimpleMatrix partialU = new SimpleMatrix(U.numRows(), U.numCols());
-            partialU.insertIntoThis(0, 0, deltas.get(2).mult(vectorH.transpose())); //partial{J}{U}
-            partialU.insertIntoThis(0, U.numCols()-1, deltas.get(2)); //partial{J}{b2}
-            gradients.add(partialU);
+            partialW = partialW.plus(elementWiseMultScalar(W, lambda));
+            partialU = partialU.plus(elementWiseMultScalar(U, lambda));
         }
+        gradients.add(partialW);
+        gradients.add(partialU);
         return gradients;
     }
 
     private double costFunction(int labelNum, SimpleMatrix vectorP) {
         // excluding division of training size, because it's just a constant
-        return -Math.log(vectorP.get(labelNum, 0));
+        double regCost = 0.0;
+        if (hasRegularization){
+            SimpleMatrix newW = setConstColToZero(W);
+            SimpleMatrix newU = setConstColToZero(U);
+            regCost = (elementWiseMultMat(newW, newW).elementSum() + elementWiseMultMat(newU, newU).elementSum()) * lambda / 2;
+        }
+        return -Math.log(vectorP.get(labelNum, 0)) + regCost;
     }
 
     private void gradientCheck(int labelNum, SimpleMatrix vectorX, List<SimpleMatrix> gradients, 
                                boolean checkX, boolean checkW, boolean checkU) {
-        double epsilon = 1e-7;
+        /* For the gradient check, we ran over the whole X, W and U to make sure it was correct.
+        In this version, we are skipping by 10 or 20 to make it run fast.
+        We also ran it on small windows (as suggested), though that case is already covered by the full run.*/
+        double epsilon = 1e-4;
         double maxAbs = 1e-7;
-        if (hasRegularization) {
-            // TODO: stuff here
-        } else {
-            /* check partial_x */
-            if (checkX) {
-                SimpleMatrix partialX = gradients.get(0);
-                SimpleMatrix numericalPartialX = new SimpleMatrix(partialX.numRows(), partialX.numCols());
-                SimpleMatrix maskX = new SimpleMatrix(vectorX.numRows(), vectorX.numCols());
-                for (int i=0; i<partialX.numRows(); i+=20){ //skipping by 20 to save time. Also ran with i++ for one whole iteration
-                    maskX.set(i, 0, epsilon);
-                    double cost1 = costFunction(labelNum, forwardProp(vectorX.plus(maskX)));
-                    maskX.set(i, 0, -epsilon);
-                    double cost2 = costFunction(labelNum, forwardProp(vectorX.plus(maskX)));
-                    maskX.set(i, 0, 0.0);
+        int checkWindow = 10;
+        int checkStart = 0;
+        /* check partial_x */
+        if (checkX) {
+            SimpleMatrix partialX = gradients.get(0);
+            SimpleMatrix numericalPartialX = new SimpleMatrix(partialX.numRows(), partialX.numCols());
+            SimpleMatrix maskX = new SimpleMatrix(vectorX.numRows(), vectorX.numCols());
+            for (int i=0; i<partialX.numRows(); i+=20){ //skipping by 20 to save time. Also ran with i++ for one whole iteration
+                maskX.set(i, 0, epsilon);
+                double cost1 = costFunction(labelNum, forwardProp(vectorX.plus(maskX)));
+                maskX.set(i, 0, -epsilon);
+                double cost2 = costFunction(labelNum, forwardProp(vectorX.plus(maskX)));
+                maskX.set(i, 0, 0.0);
 
-                    numericalPartialX.set(i, 0, (cost1 - cost2)/(2.0 * epsilon));
+                numericalPartialX.set(i, 0, (cost1 - cost2)/(2.0 * epsilon));
 
-                    // System.out.println(partialX.get(i,0) + ", " + numericalPartialX.get(i,0));
-                    if (Math.abs(partialX.get(i,0) - numericalPartialX.get(i,0)) > maxAbs) {
-                        System.out.println("Gradient check failed at partial X. Aborting.");
+                // System.out.println(partialX.get(i,0) + ", " + numericalPartialX.get(i,0));
+                if (Math.abs(partialX.get(i,0) - numericalPartialX.get(i,0)) > maxAbs) {
+                    System.out.println("Gradient check failed at partial X. Aborting.");
+                }
+            }
+        }
+        /* check partial_W */
+        if (checkW) {
+            SimpleMatrix partialW = gradients.get(1);
+            SimpleMatrix numericalPartialW = new SimpleMatrix(partialW.numRows(), partialW.numCols());
+            SimpleMatrix maskW = new SimpleMatrix(W.numRows(), W.numCols());
+            for (int i=0; i<partialW.numRows(); i+=20){ //skipping by 20 to save time. Also ran with i++ for one whole iteration
+                for (int j=0; j<partialW.numCols(); j+=20){ //skipping by 20 to save time. Also ran with j++ for one whole iteration
+                    maskW.set(i, j, epsilon);
+                    W = W.plus(maskW);
+                    double cost1 = costFunction(labelNum, forwardProp(vectorX));
+                    maskW.set(i, j, -2*epsilon);
+                    W = W.plus(maskW);
+                    double cost2 = costFunction(labelNum, forwardProp(vectorX));
+                    maskW.set(i, j, epsilon);
+                    W = W.plus(maskW);
+                    maskW.set(i, j, 0.0);
+                    numericalPartialW.set(i, j, (cost1 - cost2)/(2.0 * epsilon));
+                    
+                    // System.out.println(partialW.get(i,j) + ", " + numericalPartialW.get(i,j));
+                    if (Math.abs(partialW.get(i,j) - numericalPartialW.get(i,j)) > maxAbs) {
+                        System.out.println("Gradient check failed at partial W. Problem at position: " + i + ", " + j);
+                        System.out.println(partialW.get(i,j) + ", " + numericalPartialW.get(i,j));
                     }
                 }
             }
-            /* check partial_W */
-            if (checkW) {
-                SimpleMatrix partialW = gradients.get(1);
-                SimpleMatrix numericalPartialW = new SimpleMatrix(partialW.numRows(), partialW.numCols());
-                SimpleMatrix maskW = new SimpleMatrix(W.numRows(), W.numCols());
-                for (int i=0; i<partialW.numRows(); i+=20){ //skipping by 20 to save time. Also ran with i++ for one whole iteration
-                    for (int j=0; j<partialW.numCols(); j+=20){ //skipping by 20 to save time. Also ran with j++ for one whole iteration
-                        maskW.set(i, j, epsilon);
-                        W = W.plus(maskW);
-                        double cost1 = costFunction(labelNum, forwardProp(vectorX));
-                        maskW.set(i, j, -2*epsilon);
-                        W = W.plus(maskW);
-                        double cost2 = costFunction(labelNum, forwardProp(vectorX));
-                        maskW.set(i, j, epsilon);
-                        W = W.plus(maskW);
-                        maskW.set(i, j, 0.0);
-                        numericalPartialW.set(i, j, (cost1 - cost2)/(2.0 * epsilon));
-                        
-                        // System.out.println(partialW.get(i,j) + ", " + numericalPartialW.get(i,j));
-                        if (Math.abs(partialW.get(i,j) - numericalPartialW.get(i,j)) > maxAbs) {
-                            System.out.println("Gradient check failed at partial W. Problem at position: " + i + ", " + j);
-                            System.out.println(partialW.get(i,j) + ", " + numericalPartialW.get(i,j));
-                        }
-                    }
-                }
-            }
-            if (checkU) {
-                SimpleMatrix partialU = gradients.get(2);
-                SimpleMatrix numericalPartialU = new SimpleMatrix(partialU.numRows(), partialU.numCols());
-                SimpleMatrix maskU = new SimpleMatrix(U.numRows(), U.numCols());
-                for (int i=0; i<partialU.numRows(); i+=20){ //skipping by 20 to save time. Also ran with i++ for one whole iteration
-                    for (int j=0; j<partialU.numCols(); j+=20){ //skipping by 20 to save time. Also ran with j++ for one whole iteration
-                        maskU.set(i, j, epsilon);
-                        U = U.plus(maskU);
-                        double cost1 = costFunction(labelNum, forwardProp(vectorX));
-                        maskU.set(i, j, -2*epsilon);
-                        U = U.plus(maskU);
-                        double cost2 = costFunction(labelNum, forwardProp(vectorX));
-                        maskU.set(i, j, epsilon);
-                        U = U.plus(maskU);
-                        maskU.set(i, j, 0.0);
-                        numericalPartialU.set(i, j, (cost1 - cost2)/(2.0 * epsilon));
-                        
-                        // System.out.println(partialU.get(i,j) + ", " + numericalPartialU.get(i,j));
-                        if (Math.abs(partialU.get(i,j) - numericalPartialU.get(i,j)) > maxAbs) {
-                            System.out.println("Gradient check failed at partial U. Problem at position: " + i + ", " + j);
-                            System.out.println(partialU.get(i,j) + ", " + numericalPartialU.get(i,j));
-                        }
+        }
+        if (checkU) {
+            SimpleMatrix partialU = gradients.get(2);
+            SimpleMatrix numericalPartialU = new SimpleMatrix(partialU.numRows(), partialU.numCols());
+            SimpleMatrix maskU = new SimpleMatrix(U.numRows(), U.numCols());
+            for (int i=0; i<partialU.numRows(); i+=10){ //skipping by 10 to save time. Also ran with i++ for one whole iteration
+                for (int j=0; j<partialU.numCols(); j+=10){ //skipping by 10 to save time. Also ran with j++ for one whole iteration
+                    maskU.set(i, j, epsilon);
+                    U = U.plus(maskU);
+                    double cost1 = costFunction(labelNum, forwardProp(vectorX));
+                    maskU.set(i, j, -2*epsilon);
+                    U = U.plus(maskU);
+                    double cost2 = costFunction(labelNum, forwardProp(vectorX));
+                    maskU.set(i, j, epsilon);
+                    U = U.plus(maskU);
+                    maskU.set(i, j, 0.0);
+                    numericalPartialU.set(i, j, (cost1 - cost2)/(2.0 * epsilon));
+                    
+                    // System.out.println(partialU.get(i,j) + ", " + numericalPartialU.get(i,j));
+                    if (Math.abs(partialU.get(i,j) - numericalPartialU.get(i,j)) > maxAbs) {
+                        System.out.println("Gradient check failed at partial U. Problem at position: " + i + ", " + j);
+                        System.out.println(partialU.get(i,j) + ", " + numericalPartialU.get(i,j));
                     }
                 }
             }
@@ -217,6 +225,14 @@ public class WindowModel {
 
     private SimpleMatrix removeConstRow(SimpleMatrix m){
         return m.extractMatrix(0, m.numRows()-1, 0, m.numCols());
+    }
+
+    private SimpleMatrix setConstColToZero(SimpleMatrix m){
+        SimpleMatrix res = new SimpleMatrix(m.numRows(), m.numCols());
+        for (int i=0; i<m.numRows(); i++){
+            res.set(i, m.numCols()-1, 0.1234);
+        }
+        return res;
     }
 
     private SimpleMatrix elementWiseTanhGrad(SimpleMatrix m){
@@ -246,7 +262,6 @@ public class WindowModel {
         }
         return res;
     }
-
 
 	public void test(List<Datum> testData){
         for (int datumIndex = 0; datumIndex < testData.size(); datumIndex++) {

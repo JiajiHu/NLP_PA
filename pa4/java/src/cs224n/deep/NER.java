@@ -71,7 +71,7 @@ public class NER {
     	// Baseline model
         // BaselineModel model = new BaselineModel();
         
-        WindowModel model = new WindowModel(3, 20, 0.001, false);
+        WindowModel model = new WindowModel(3, 20, 0.001, true, 0.001);
     	model.initWeights();
 
         model.test(testData); //test result
