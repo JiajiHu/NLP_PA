@@ -1,0 +1,82 @@
+\documentclass[12pt]{article}
+\usepackage{fullpage,enumerate,amsmath,amssymb,graphicx, float, lipsum}
+
+\begin{document}
+
+\begin{center}
+{\Large CS224n Fall 2014 Programming Assignment 4}
+\vspace{12pt}
+
+SUNet ID: tzhang54, jiajihu
+
+Name: Tong Zhang, Jiaji Hu
+\vspace{12pt}
+\end{center}
+
+\section{System Implementation}
+
+\subsection{Baseline}
+In the baseline implementation, we used a Map to store the label of each word. In training stage, we iterated over each training datum and checked if the word is in the map. If the word is not in the map, add it to the map with the corresponding label. If it is in the map but the previous label is inconsistent with the new label, we would update the value to the new label unless the new label is $O$. For each test datum, our prediction is the label stored in the map. If the word is not in the map, we would predict $O$.
+
+\subsection{Word Vectors}
+
+\subsubsection{Load From File}
+Our first option to populate the word vectors is to load the word vectors from file. We read the file in two passes. In the first pass, we obtained the dimension of the word vectors $n$, and the number of words $|V|$. Then we created an ${n}\times{|V|}$ matrix in which each column represented a word vector. In the second pass, we populated the matrix with values from the file.
+
+
+\subsubsection{Random Initialization}
+Our second option is to randomly initialize the word vectors. We could pass in the word vector dimensions as parameters to create the matrix. Then for each element in the matrix, we generated a random real number between -1 and 1.\\
+The comparision between these two methods of initializing word vectors will be shown in later sections in the report.
+
+
+\subsection{Context Windows}
+For a given word $w_i$ and window size $C$, we generated the context windows by concatenating $w_{i-C/2}$ ... $w_{i+C/2}$. If the indices are out of bounds, pad with $<s>$ or $</s>$ accordingly. Then we converted each word to the word vector to get the final form of the input for the feedforward process.\\
+When looking up a word in the map, we first convert the word to lower case and replaced each digit in the word to $DG$ in order to match the given vocabulary list.
+
+
+\subsection{Feedforward}
+Our feedforward implementation followed the formula
+
+\begin{align*}
+p_\theta(x^(i))=g(Uf(Wx))
+\end{align*}
+
+The dimensions of each element in the formula are shown in the table~\ref{tab:dim}.
+
+\begin{table}[H]
+	\begin{center}
+		\begin{tabular}{|l|c|c|}
+			\hline
+			Matrix & Dimensions \\\hline
+			$x$ & ${(nC+1)}\times{1}$ \\\hline
+			$W$ & ${H}\times{(nC+1)}$ \\\hline
+			$h$ & ${(H+1)}\times{1}$ \\\hline
+			$U$ & ${K}\times{(H+1)}$ \\\hline
+		\end{tabular}
+	\end{center}
+	\caption{Feedforward Matrix Dimensions}
+	\label{tab:dim}
+\end{table}
+
+First, we pad the input vector $x$ with a constant value 1.0 at the end in order to represent the bias term. Then we compute the vector $h=f(Wx)$ and pad a constant 1.0 at the end as well. Our function $f(.) = tanh(.)$. Finally we applied the softmax function $g$ to produce the final probability vector $p$.\\
+We initialized the matrices $W$ and $U$ by assigning a random value in the range of $[-\epsilon_{init}, \epsilon_{init}]$, including the the bias term.
+
+
+\subsection{Backpropagation}
+
+
+
+\section{Analysis and Plots}
+
+
+
+\section{Error Analysis}
+
+
+
+\section{Extra Credit}
+
+\subsection{Compare Word Vectors}
+We downloaded the glove word vector \textit{glob.6B.50d.txt} and converted it to the format similar to the given word vectors and vocabulary list files. We also added the special symbols $UUUNKKK$, $<s>$, and $</s>$ to make it consistent with the given word vectors. As shown in the results section above, the larger word vectors did help improve our performance.
+
+\end{document}
