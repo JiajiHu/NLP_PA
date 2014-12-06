@@ -79,4 +79,24 @@ We initialized the matrices $W$ and $U$ by assigning a random value in the range
 \subsection{Compare Word Vectors}
 We downloaded the glove word vector \textit{glob.6B.50d.txt} and converted it to the format similar to the given word vectors and vocabulary list files. We also added the special symbols $UUUNKKK$, $<s>$, and $</s>$ to make it consistent with the given word vectors. As shown in the results section above, the larger word vectors did help improve our performance.
 
+\subsection{Sequence Modeling}
+We added an interface to support sequence modeling. In sequence modeling mode, the dimension of the following matrices changed, where $K$ is the number of label classes.
+
+\begin{table}[H]
+	\begin{center}
+		\begin{tabular}{|l|c|c|}
+			\hline
+			Matrix & Original Dimensions & New Dimensions \\\hline
+			$x$ & ${(nC+1)}\times{1}$ & ${(nC+1+K)}\times{1}$ \\\hline
+			$W$ & ${H}\times{(nC+1)}$ & ${H}\times{(nC+1+K)}$ \\\hline
+		\end{tabular}
+	\end{center}
+	\caption{Matrix Dimensions with Sequence Modeling}
+	\label{tab:dim2}
+\end{table}
+
+We initialized $W$ and $x$ accordingly. Starting from the first iteration, we stored the prediction vector $p$ and input the values to vector $x$ in the next iteration.\\
+The results comparision of sequence modeling are shown in the results section above.
+
+
 \end{document}
