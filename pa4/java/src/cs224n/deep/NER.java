@@ -13,7 +13,7 @@ public class NER {
         try {
             writer = new BufferedWriter(new OutputStreamWriter(new FileOutputStream(outputFileName), "utf-8"));
             for (Datum d : testData) {
-                String word = d.word.toLowerCase();
+                String word = d.word;
                 String label = d.label;
 
                 String prediction = "O";
