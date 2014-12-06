@@ -18,16 +18,19 @@ public class WindowModel {
 	public int windowSize, wordSize, hiddenSize;
     public double learningRate, lambda;
     public boolean hasRegularization;
+    public boolean useSequenceModel;
+    private int additionalDim;
 
     public String[] predictionLabels = new String[]{"O", "LOC", "MISC", "ORG", "PER"};
     public Map<String, Integer> labelToIndex = new HashMap();
     public static int NUM_PREDICTION_CLASSES = 5;
 
+    private double[] previousPredictions = null;
 
     public static final String BEGIN_TOKEN = "<s>";
     public static final String END_TOKEN = "</s>";
 
-	public WindowModel(int _windowSize, int _hiddenSize, double _lr, boolean _hasReg, double _lambda){
+	public WindowModel(int _windowSize, int _hiddenSize, double _lr, boolean _hasReg, double _lambda, boolean _useSeqModel){
         L = FeatureFactory.allVecs;
         wordToNum = FeatureFactory.wordToNum;
         predictions = new HashMap<String, String>();
@@ -38,6 +41,11 @@ public class WindowModel {
         learningRate = _lr;
         lambda = _lambda;
         wordSize = L.numRows();
+
+        useSequenceModel = _useSeqModel;
+        // if use sequence model, increase the dimension by K (label classes)
+        additionalDim = useSequenceModel ? predictionLabels.length : 0;
+
 
         int labelIndex = 0;
         for (String s : predictionLabels) {
@@ -56,7 +64,7 @@ public class WindowModel {
         double epsilon = Math.sqrt(6) / Math.sqrt((double) (windowSize * wordSize + hiddenSize));
 
         // initialize bias vector randomly to avoid overfitting
-        this.W = SimpleMatrix.random(hiddenSize, wordSize * windowSize  + 1, -epsilon, epsilon, new Random());
+        this.W = SimpleMatrix.random(hiddenSize, wordSize * windowSize  + 1 + additionalDim, -epsilon, epsilon, new Random());
         this.U = SimpleMatrix.random(NUM_PREDICTION_CLASSES, hiddenSize + 1, -epsilon, epsilon, new Random());
 
 	}
@@ -66,6 +74,7 @@ public class WindowModel {
 	 * Simplest SGD training 
 	 */
 	public void train(List<Datum> trainData){
+        previousPredictions = null;
         for (int datumIndex = 0; datumIndex < trainData.size(); datumIndex++) {
 
             List<Integer> wordNums = generateWordNumList(trainData, windowSize, datumIndex);
@@ -74,7 +83,7 @@ public class WindowModel {
             SimpleMatrix vectorH = tanh(vectorZ);
             SimpleMatrix vectorV = U.mult(addConstRow(vectorH));
             SimpleMatrix vectorP = softmax(vectorV);
-
+            
             int labelNum = labelToIndex.get(trainData.get(datumIndex).label);
             List<SimpleMatrix> deltas = getDeltas(labelNum, vectorH, vectorP);
             List<SimpleMatrix> gradients = getGradients(vectorX, vectorH, deltas);
@@ -82,6 +91,8 @@ public class WindowModel {
             // gradientCheck(labelNum, vectorX, gradients, true, true, true);
             
             oneSGD(gradients, wordNums);
+            previousPredictions = vectorP.extractVector(false, 0).getMatrix().getData();
+
         }
 	}
 
@@ -264,12 +275,13 @@ public class WindowModel {
     }
 
 	public void test(List<Datum> testData){
+        previousPredictions = null;
         for (int datumIndex = 0; datumIndex < testData.size(); datumIndex++) {
             // forward propagation
             SimpleMatrix vectorX = generateWindow(testData, windowSize, datumIndex);
             SimpleMatrix vectorP = forwardProp(vectorX);
             double[] vector = vectorP.extractVector(false, 0).getMatrix().getData();
-
+            
             if (vector.length != NUM_PREDICTION_CLASSES) {
                 System.out.println("Invalid vector length in test");
                 return;
@@ -286,6 +298,8 @@ public class WindowModel {
             }
 
             predictions.put(testData.get(datumIndex).word, predictionLabels[bestIndex]);
+            
+            previousPredictions = vector;
 
         }
 	}
@@ -324,7 +338,7 @@ public class WindowModel {
     } 
 
     private SimpleMatrix generateWindow(List<Datum> data, int C, int currIndex) {
-        SimpleMatrix vectorX = new SimpleMatrix(wordSize * C + 1, 1);
+        SimpleMatrix vectorX = new SimpleMatrix(wordSize * C + 1 + additionalDim, 1);
         int rowIndex = 0;
         for (int i = currIndex - C/2; i <= currIndex + C/2; i++ ) {
             String word = "";
@@ -342,6 +356,18 @@ public class WindowModel {
             }
         }
 
+        // add the previous predictions
+        if (useSequenceModel) {
+            for (int i = 0; i < additionalDim; i++) {
+                double val = 0.0;
+                if (previousPredictions != null) {
+                    val = previousPredictions[i];
+                }
+                vectorX.set(rowIndex, 0, val);
+                rowIndex++;
+            }
+        }
+        
         // add the constants for the bias
         vectorX.set(rowIndex, 0, 1.0);
         rowIndex++;
