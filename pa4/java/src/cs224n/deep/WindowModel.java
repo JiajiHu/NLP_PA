@@ -80,8 +80,6 @@ public class WindowModel {
 	 */
 	public void train(List<Datum> trainData){
         previousPredictions = null;
-
-
         // generate random permutation for training data to improve SGD efficiency
         List<Integer> trainingIndices = new ArrayList<Integer>();
         for (int i = 0; i < trainData.size(); i++) {
@@ -208,7 +206,7 @@ public class WindowModel {
             regCost = (elementWiseMultMat(newW, newW).elementSum() + elementWiseMultMat(newU, newU).elementSum()) * lambda / 2;
             if (deeperLearning){
                 SimpleMatrix newW2 = setConstColToZero(W2);
-                regCost += elementWiseMultMat(newW2, newW2).elementSum() * lambda / 2
+                regCost += elementWiseMultMat(newW2, newW2).elementSum() * lambda / 2;
             }
         }
         return -Math.log(vectorP.get(labelNum, 0)) + regCost;
@@ -273,10 +271,11 @@ public class WindowModel {
             }
         }
         if (checkU) {
+            SimpleMatrix partialU = null;
             if (deeperLearning) {
-                SimpleMatrix partialU = gradients.get(3);
+                partialU = gradients.get(3);
             } else {
-                SimpleMatrix partialU = gradients.get(2);
+                partialU = gradients.get(2);
             }
             SimpleMatrix numericalPartialU = new SimpleMatrix(partialU.numRows(), partialU.numCols());
             SimpleMatrix maskU = new SimpleMatrix(U.numRows(), U.numCols());
