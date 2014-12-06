@@ -1,5 +1,6 @@
 package cs224n.deep;
 import java.lang.*;
+import java.security.cert.CollectionCertStoreParameters;
 import java.util.*;
 
 import org.ejml.data.*;
@@ -75,7 +76,15 @@ public class WindowModel {
 	 */
 	public void train(List<Datum> trainData){
         previousPredictions = null;
-        for (int datumIndex = 0; datumIndex < trainData.size(); datumIndex++) {
+
+        // generate random permutation for training data to improve SGD efficiency
+        List<Integer> trainingIndices = new ArrayList<Integer>();
+        for (int i = 0; i < trainData.size(); i++) {
+            trainingIndices.add(i);
+        }
+        Collections.shuffle(trainingIndices);
+
+        for (int datumIndex : trainingIndices) {
 
             List<Integer> wordNums = generateWordNumList(trainData, windowSize, datumIndex);
             SimpleMatrix vectorX = generateWindow(trainData, windowSize, datumIndex);
