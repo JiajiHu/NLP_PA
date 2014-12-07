@@ -77,7 +77,8 @@ We initialized the matrices $W$ and $U$ by assigning a random value in the range
 \section{Extra Credit}
 
 \subsection{Compare Word Vectors}
-We downloaded the glove word vector \textit{glob.6B.50d.txt} and converted it to the format similar to the given word vectors and vocabulary list files. We also added the special symbols $UUUNKKK$, $<s>$, and $</s>$ to make it consistent with the given word vectors. As shown in the results section above, the larger word vectors did help improve our performance.
+We downloaded the glove word vectors \textit{glob.6B.50d.txt} and converted it to the format similar to the given word vectors and vocabulary list files. We also added the special symbols $UUUNKKK$, $<s>$, and $</s>$ to make it consistent with the given word vectors. As shown in the results section above, the larger word vectors did help improve our performance.\\
+The glove word vectors was helpful in performance because of its significantly large word collections, which includes 4 times as many as words as the original word vectors. Therefore, more words will be trained with actual vectors instead of being discarded as unknown words.
 
 \subsection{Sequence Modeling}
 We added an interface to support sequence modeling. In sequence modeling mode, the dimension of the following matrices changed, where $K$ is the number of label classes.
