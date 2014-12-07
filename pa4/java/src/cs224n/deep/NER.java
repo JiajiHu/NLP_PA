@@ -72,8 +72,8 @@ public class NER {
         // BaselineModel model = new BaselineModel();
 
         // WindowModel(int _windowSize, int _hiddenSize, double _lr, boolean _hasReg, double _lambda, boolean _useSeqModel, boolean _deeper, int _hiddenSize2)
-        WindowModel model = new WindowModel(3, 40, 0.001, true, 0.001, true, true, 10);
-        // WindowModel model = new WindowModel(3, 20, 0.001, true, 0.001, true, false, 10);
+        // WindowModel model = new WindowModel(3, 40, 0.001, true, 0.001, true, true, 10);
+        WindowModel model = new WindowModel(3, 20, 0.001, true, 0.001, true, false, 10);
     	model.initWeights();
 
         model.test(testData); //test result

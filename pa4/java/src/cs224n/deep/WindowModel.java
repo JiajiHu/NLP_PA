@@ -40,6 +40,7 @@ public class WindowModel {
         hiddenSize = _hiddenSize;
         hiddenSize2 = _hiddenSize2;
         learningRate = _lr;
+        deeperLearning = _deeper;
         lambda = _lambda;
         wordSize = L.numRows();
 
@@ -115,7 +116,7 @@ public class WindowModel {
             List<SimpleMatrix> deltas = getDeltas(labelNum, vectors);
             List<SimpleMatrix> gradients = getGradients(vectors, deltas);
             
-            // gradientCheck(labelNum, vectorX, gradients, true, true, true);
+            gradientCheck(labelNum, vectorX, gradients, true, true, true);
             
             oneSGD(gradients, wordNums);
 
@@ -168,12 +169,12 @@ public class WindowModel {
 
         if (deeperLearning) {
             partialW2 = new SimpleMatrix(W2.numRows(), W2.numCols());
-            partialW2.insertIntoThis(0, 0, deltas.get(3).mult(vectors.get(4).transpose())); //partial{J}{U}
-            partialW2.insertIntoThis(0, W2.numCols()-1, deltas.get(3)); //partial{J}{b2}
+            partialW2.insertIntoThis(0, 0, deltas.get(2).mult(vectors.get(2).transpose())); //partial{J}{W2}
+            partialW2.insertIntoThis(0, W2.numCols()-1, deltas.get(2)); //partial{J}{b2}
 
             partialU = new SimpleMatrix(U.numRows(), U.numCols());
-            partialU.insertIntoThis(0, 0, deltas.get(2).mult(vectors.get(2).transpose())); //partial{J}{U}
-            partialU.insertIntoThis(0, U.numCols()-1, deltas.get(2)); //partial{J}{b2}
+            partialU.insertIntoThis(0, 0, deltas.get(3).mult(vectors.get(4).transpose())); //partial{J}{U}
+            partialU.insertIntoThis(0, U.numCols()-1, deltas.get(3)); //partial{J}{b3}
 
         } else {
             partialU = new SimpleMatrix(U.numRows(), U.numCols());
@@ -219,6 +220,9 @@ public class WindowModel {
         We also ran it on small windows (as suggested), though that case is already covered by the full run.*/
         double epsilon = 1e-4;
         double maxAbs = 1e-7;
+        if (deeperLearning) {
+            maxAbs = 5e-3;
+        }
         int checkWindow = 10;
         int checkStart = 0;
         /* check partial_x */
@@ -267,7 +271,29 @@ public class WindowModel {
                 }
             }
             if (deeperLearning) { // check W2
-                // TODO
+                SimpleMatrix partialW2 = gradients.get(2);
+                SimpleMatrix numericalPartialW2 = new SimpleMatrix(partialW2.numRows(), partialW2.numCols());
+                SimpleMatrix maskW2 = new SimpleMatrix(W2.numRows(), W2.numCols());
+                for (int i=0; i<partialW2.numRows(); i+=20){ //skipping by 20 to save time. Also ran with i++ for one whole iteration
+                    for (int j=0; j<partialW2.numCols(); j+=20){ //skipping by 20 to save time. Also ran with j++ for one whole iteration
+                        maskW2.set(i, j, epsilon);
+                        W2 = W2.plus(maskW2);
+                        double cost1 = costFunction(labelNum, forwardProp(vectorX));
+                        maskW2.set(i, j, -2*epsilon);
+                        W2 = W2.plus(maskW2);
+                        double cost2 = costFunction(labelNum, forwardProp(vectorX));
+                        maskW2.set(i, j, epsilon);
+                        W2 = W2.plus(maskW2);
+                        maskW2.set(i, j, 0.0);
+                        numericalPartialW2.set(i, j, (cost1 - cost2)/(2.0 * epsilon));
+                        
+                        // System.out.println(partialW2.get(i,j) + ", " + numericalPartialW2.get(i,j));
+                        if (Math.abs(partialW2.get(i,j) - numericalPartialW2.get(i,j)) > maxAbs) {
+                            System.out.println("Gradient check failed at partial W2. Problem at position: " + i + ", " + j);
+                            System.out.println(partialW2.get(i,j) + ", " + numericalPartialW2.get(i,j));
+                        }
+                    }
+                }
             }
         }
         if (checkU) {
