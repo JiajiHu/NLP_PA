@@ -188,6 +188,11 @@ public class WindowModel {
                 partialW2 = partialW2.plus(elementWiseMultScalar(W2, lambda));
             }
             partialU = partialU.plus(elementWiseMultScalar(U, lambda));
+            // partialW = partialW.plus(elementWiseMultScalar(setConstColToZero(W), lambda));
+            // if (deeperLearning) {
+            //     partialW2 = partialW2.plus(elementWiseMultScalar(setConstColToZero(W2), lambda));
+            // }
+            // partialU = partialU.plus(elementWiseMultScalar(setConstColToZero(U), lambda));
         }
 
         gradients.add(partialW);
@@ -204,10 +209,12 @@ public class WindowModel {
         if (hasRegularization){
             SimpleMatrix newW = setConstColToZero(W);
             SimpleMatrix newU = setConstColToZero(U);
-            regCost = (elementWiseMultMat(newW, newW).elementSum() + elementWiseMultMat(newU, newU).elementSum()) * lambda / 2;
+            // regCost = (elementWiseMultMat(newW, newW).elementSum() + elementWiseMultMat(newU, newU).elementSum()) * lambda / 2;
+            regCost = (elementWiseMultMat(W, W).elementSum() + elementWiseMultMat(U, U).elementSum()) * lambda / 2;
             if (deeperLearning){
                 SimpleMatrix newW2 = setConstColToZero(W2);
-                regCost += elementWiseMultMat(newW2, newW2).elementSum() * lambda / 2;
+                // regCost += elementWiseMultMat(newW2, newW2).elementSum() * lambda / 2;
+                regCost += elementWiseMultMat(W2, W2).elementSum() * lambda / 2;
             }
         }
         return -Math.log(vectorP.get(labelNum, 0)) + regCost;
@@ -220,9 +227,6 @@ public class WindowModel {
         We also ran it on small windows (as suggested), though that case is already covered by the full run.*/
         double epsilon = 1e-4;
         double maxAbs = 1e-7;
-        if (deeperLearning) {
-            maxAbs = 5e-3;
-        }
         int checkWindow = 10;
         int checkStart = 0;
         /* check partial_x */
