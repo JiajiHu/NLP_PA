@@ -108,6 +108,10 @@ Comparing the two graphs, we see that using random word vectors gives a much slo
 From these results, we hypothesize that it is because even though the word vectors were trained without NER in mind, the unsupervised training still captured common traits between words that help the NER task. Therefore, in a supervised training scenario, the neural network can quickly exploit those traits and achieve good performance. (Of course, as we backpropagate into $L$, these vectors will also be tweaked towards the goal of NER). On the other hand, for random word vectors, all the training will be supervised and starts from scratch, so it takes many more iterations and even then, the results are not as good. This shows that even unsupervised pre-training can help supervised tasks.
 
 After this, we moved on to implement sequence modeling, deeper neural networks (though we chose not to use it in the end), and incorporated word vectors from the `glove' set. These will be documented in detail in Section 6. With these extra improvements, we are ready for parameter tuning.
+\subsubsection{Learning Word Vectors\\ and Capitalization}
+We chose to modify $L$ during SGD instead of having it fixed, because the vectors were trained by an unsupervised method. Intuitively, if we don't modify them, we only rely on $W$ and $U$ for the supervised task. In practice, learning the vectors helped raise scores.
+
+As for capitalization, our word vectors were uncased, so it made sense to just have everything lower-case. This was also the design choice that gets best performance.
 \subsubsection{Learning Rate $\alpha$}
 For the learning rate, we started with $\alpha = 10^-3$, which worked very well. We experimented with other values, but the end performance was quite similar.
 
@@ -132,7 +136,7 @@ In the end, we chose $\lambda = 0.0005$ because it gave the best dev performance
 \subsubsection{Hidden Layer Nodes}
 The number of hidden layer nodes determines how expressive your neural network can be. If the number is too low, the network may underfit the data, while a large amount of training data would be needed to do well if the number is high.
 
-For this parameter, we tried out $H=10,20,40,60,100$. The results are shown in Figure~\ref{fig:hidden}.
+For this parameter, we tried out $H=10,20,40,60,100$.
 \begin{figure}[H]
 \centering
 \includegraphics[width = \linewidth]{plots/hidden}
@@ -162,12 +166,11 @@ In our experiment, we tried $C=1,3,5,7$.
 \label{tab:window}
 \end{table}
 Intuitively, if the window size is 1, you're looking at no context, so useful information is lost, hence the lower score. On the other hand, if the window size is too large, your input is larger, but might not supply enough information to justify the additional dimensions. In real life, you probably don't need to look 3 words ahead and behind to determine an NER type. The extra dimensions only hurt by making the problem bigger.
+
 \subsection{Result}
 In the end, Our system had variable learning rate ($\alpha = 0.002\rightarrow0.0005$), $\lambda = 0.0005$, $H=60$, and $C=3$. Along with the `glove' word vectors and sequence modeling, this gave us the best performance on the dev set.
 
 The learning curve of such a system is shown in Figure~\ref{fig:result}. We see that the dev F1 score peaks at epoch 33, so our final system would be trained for 33 iterations.
-
-Training and dev scores are shown below:
 \begin{table}[H]
 \centering
 	\begin{tabular}{|c|c|c|}
@@ -229,7 +232,7 @@ The system has trouble differentiating between ORG and LOC.
 
 234/1925 of `LOC' were classified as `ORG', while 338/2496 of `ORG' were classified as `LOC'. These two stand out as easily the two most common types of errors made by our system (excluding the `O's). They both occur almost ten times more frequently than other errors between named entity types.
 
-Intuitively, it is indeed possible that these two types are hard to differentiate. For example, `the United States' should be classified as three `LOC's, but `the United States Navy' becomes four `ORG's.
+Intuitively, it is indeed possible that these two types are hard to differentiate. For example, `the United States' should be classified as `LOC's, but `the United States Navy' becomes `ORG's.
 
 In order to combat this, we could feed the system some better training examples that address this confusion. Also, we might need a bigger window size -- more information might be able to help differentiate in these conditions.
 \end{enumerate}
@@ -295,16 +298,16 @@ Meanwhile, backpropagation gets gradients:
 \frac{\partial J(\theta)}{\partial W^{(1)}} = \delta^{(1)}x^T, \frac{\partial J(\theta)}{\partial b^{(1)}} = \delta^{(1)}\\
 \frac{\partial J(\theta)}{\partial x} = \delta^{(0)}\\
 \end{gather*}
+\vspace{-36pt}
+
 These gradients also pass the gradient check mentioned in Section~1.6.
 
 Using a deeper network means that there is one extra parameter, the size of the second hidden layer. We did some experiments and ended up choosing $H1=60,H2=20$.
 
-With these parameters, our deeper network got a Dev F1 score of 83.41 after training for 26 iterations. The test F1 for such a system was 79.68, which was quite decent, especially considering that we did not do much parameter tuning.
+With these parameters, our deeper network got a Dev F1 score of 83.41 after training for 26 iterations. The test F1 for such a system was 79.68, which was quite decent, especially considering that we did not do much tuning.
 
 However, the deeper system was slower to train and had more parameters to tune, so we focused on the shallow network in our report.
 \section{Further Improvements}
-In addition to what we have talked about in the analysis for Section 2, there are still things we can try to improve the scores.
-
-One idea is that we could train 3-5 systems with different parameters and form an ensemble to `vote for' the final tag prediction. These methods have been known to push scores higher.
+We had one idea where we could train 3-5 systems with different parameters and form an ensemble to `vote for' the final tag prediction. These methods have been known to push scores higher.
 
 \end{document}

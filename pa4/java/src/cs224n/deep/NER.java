@@ -41,7 +41,7 @@ public class NER {
     
     public static void main(String[] args) throws IOException {
         if (args.length < 3) {
-            System.out.println("USAGE: java -cp classes NER ../data/train ../data/dev ../output/output1 (NUM_ITERS) (../data/test)");
+            System.out.println("USAGE: java -cp 'extlib/*:classes' NER ../data/train ../data/dev ../output/output1 (NUM_ITERS) (../data/test)");
             return;
         }
         /* this reads in the train and test datasets */
