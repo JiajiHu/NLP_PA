@@ -1,0 +1,8 @@
+CS224N Programming Assignment 4
+Jiaji Hu, Tong Zhang
+
+NOTE:
+In the code, we default to use the `glove' word vectors that we downloaded and preprocessed to fit the framework.
+Due to the large size of the word vectors, we were not able to submit them along with the project.
+If you want to run the code without those vectors, you can also uncomment/comment the corresponding lines to use the default given word vectors, though the performance will probably suffer.
+
