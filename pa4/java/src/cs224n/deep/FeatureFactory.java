@@ -33,6 +33,14 @@ public class FeatureFactory {
         if (testData==null) testData= read(filename);
         return testData;
 	}
+
+    static List<Datum> finaltestData;
+    /** Do not modify this method **/
+    public static List<Datum> readFinalTestData(String filename) throws IOException {
+        if (finaltestData==null) finaltestData= read(filename);
+        return finaltestData;
+    }
+
 	
 	private static List<Datum> read(String filename)
 			throws FileNotFoundException, IOException {
@@ -55,12 +63,12 @@ public class FeatureFactory {
 	}
  
  
-	// Look up table matrix with all word vectors as defined in lecture with dimensionality n x |V|
+	/* Look up table matrix with all word vectors as defined in lecture with dimensionality n x |V| */
 	static SimpleMatrix allVecs; //access it directly in WindowModel
 	public static SimpleMatrix readWordVectors(String vecFilename) throws IOException {
 		if (allVecs!=null) return allVecs;
 
-        // get vector matrix size
+        /* get vector matrix size */
         int numVectors = 0;
         BufferedReader br = new BufferedReader(new FileReader(vecFilename));
         String line = br.readLine();
@@ -76,7 +84,7 @@ public class FeatureFactory {
 
         allVecs = new SimpleMatrix(vectorDimension, numVectors);
 
-        // populate vector matrix
+        /* populate vector matrix */
         double[] column = new double[vectorDimension];
         allVecs.setColumn(0, 0, column);
         br = new BufferedReader(new FileReader(vecFilename));
@@ -106,7 +114,7 @@ public class FeatureFactory {
 
 		return null;
 	}
-	// might be useful for word to number lookups, just access them directly in WindowModel
+	/* might be useful for word to number lookups, just access them directly in WindowModel */
 	public static HashMap<String, Integer> wordToNum = new HashMap<String, Integer>(); 
 	public static HashMap<Integer, String> numToWord = new HashMap<Integer, String>();
 

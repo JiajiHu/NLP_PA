@@ -20,6 +20,8 @@ public class WindowModel {
     public double learningRate, lambda;
     public boolean hasRegularization, useSequenceModel, deeperLearning;
     private int additionalDim;
+    private int iterCounter;
+    private boolean variableRate;
 
     public String[] predictionLabels = new String[]{"O", "LOC", "MISC", "ORG", "PER"};
     public Map<String, Integer> labelToIndex = new HashMap();
@@ -30,12 +32,15 @@ public class WindowModel {
     public static final String BEGIN_TOKEN = "<s>";
     public static final String END_TOKEN = "</s>";
 
-	public WindowModel(int _windowSize, int _hiddenSize, double _lr, boolean _hasReg, double _lambda, boolean _useSeqModel, boolean _deeper, int _hiddenSize2){
+	public WindowModel(int _windowSize, int _hiddenSize, double _lr, double _lambda, boolean _useSeqModel, boolean _deeper, int _hiddenSize2, boolean _varRate){
         L = FeatureFactory.allVecs;
         wordToNum = FeatureFactory.wordToNum;
         predictions = new HashMap<String, String>();
 
-        hasRegularization = _hasReg;
+        hasRegularization = true;
+        variableRate = _varRate;
+        iterCounter = 0;
+
 		windowSize = _windowSize;
         hiddenSize = _hiddenSize;
         hiddenSize2 = _hiddenSize2;
@@ -45,7 +50,7 @@ public class WindowModel {
         wordSize = L.numRows();
 
         useSequenceModel = _useSeqModel;
-        // if use sequence model, increase the dimension by K (label classes)
+        /* if use sequence model, increase the dimension by K (label classes) */
         additionalDim = useSequenceModel ? predictionLabels.length : 0;
 
 
@@ -65,7 +70,7 @@ public class WindowModel {
 	public void initWeights(){
         double epsilon = Math.sqrt(6) / Math.sqrt((double) (windowSize * wordSize + hiddenSize));
 
-        // initialize bias vector randomly to avoid overfitting
+        /* initialize bias vector randomly to avoid overfitting */
         this.W = SimpleMatrix.random(hiddenSize, wordSize * windowSize  + 1 + additionalDim, -epsilon, epsilon, new Random());
         if (deeperLearning) {
             this.W2 = SimpleMatrix.random(hiddenSize2, hiddenSize + 1, -epsilon, epsilon, new Random());
@@ -81,7 +86,8 @@ public class WindowModel {
 	 */
 	public void train(List<Datum> trainData){
         previousPredictions = null;
-        // generate random permutation for training data to improve SGD efficiency
+
+        /* generate random permutation for training data to improve SGD efficiency */
         List<Integer> trainingIndices = new ArrayList<Integer>();
         for (int i = 0; i < trainData.size(); i++) {
             trainingIndices.add(i);
@@ -116,7 +122,7 @@ public class WindowModel {
             List<SimpleMatrix> deltas = getDeltas(labelNum, vectors);
             List<SimpleMatrix> gradients = getGradients(vectors, deltas);
             
-            gradientCheck(labelNum, vectorX, gradients, true, true, true);
+            // gradientCheck(labelNum, vectorX, gradients, true, true, true);
             
             oneSGD(gradients, wordNums);
 
@@ -125,6 +131,15 @@ public class WindowModel {
 
             previousPredictions = vectorP.extractVector(false, 0).getMatrix().getData();
 
+        }
+        this.iterCounter++;
+        if (variableRate){
+            /* variable learning rate: 0.002 --> 0.0005 */
+            if (this.iterCounter == 10) {
+                this.learningRate = this.learningRate / 2;
+            } else if (this.iterCounter == 30) {
+                this.learningRate = this.learningRate / 2;
+            }
         }
 	}
 
@@ -183,16 +198,11 @@ public class WindowModel {
         }
 
         if (hasRegularization) {
-            partialW = partialW.plus(elementWiseMultScalar(W, lambda));
+            partialW = partialW.plus(elementWiseMultScalar(setConstColToZero(W), lambda));
             if (deeperLearning) {
-                partialW2 = partialW2.plus(elementWiseMultScalar(W2, lambda));
+                partialW2 = partialW2.plus(elementWiseMultScalar(setConstColToZero(W2), lambda));
             }
-            partialU = partialU.plus(elementWiseMultScalar(U, lambda));
-            // partialW = partialW.plus(elementWiseMultScalar(setConstColToZero(W), lambda));
-            // if (deeperLearning) {
-            //     partialW2 = partialW2.plus(elementWiseMultScalar(setConstColToZero(W2), lambda));
-            // }
-            // partialU = partialU.plus(elementWiseMultScalar(setConstColToZero(U), lambda));
+            partialU = partialU.plus(elementWiseMultScalar(setConstColToZero(U), lambda));
         }
 
         gradients.add(partialW);
@@ -204,17 +214,15 @@ public class WindowModel {
     }
 
     private double costFunction(int labelNum, SimpleMatrix vectorP) {
-        // excluding division of training size, because it's just a constant
+        /* excluding division of training size, because it's just a constant */
         double regCost = 0.0;
         if (hasRegularization){
             SimpleMatrix newW = setConstColToZero(W);
             SimpleMatrix newU = setConstColToZero(U);
-            // regCost = (elementWiseMultMat(newW, newW).elementSum() + elementWiseMultMat(newU, newU).elementSum()) * lambda / 2;
-            regCost = (elementWiseMultMat(W, W).elementSum() + elementWiseMultMat(U, U).elementSum()) * lambda / 2;
+            regCost = (elementWiseMultMat(newW, newW).elementSum() + elementWiseMultMat(newU, newU).elementSum()) * lambda / 2;
             if (deeperLearning){
                 SimpleMatrix newW2 = setConstColToZero(W2);
-                // regCost += elementWiseMultMat(newW2, newW2).elementSum() * lambda / 2;
-                regCost += elementWiseMultMat(W2, W2).elementSum() * lambda / 2;
+                regCost += elementWiseMultMat(newW2, newW2).elementSum() * lambda / 2;
             }
         }
         return -Math.log(vectorP.get(labelNum, 0)) + regCost;
@@ -243,7 +251,6 @@ public class WindowModel {
 
                 numericalPartialX.set(i, 0, (cost1 - cost2)/(2.0 * epsilon));
 
-                // System.out.println(partialX.get(i,0) + ", " + numericalPartialX.get(i,0));
                 if (Math.abs(partialX.get(i,0) - numericalPartialX.get(i,0)) > maxAbs) {
                     System.out.println("Gradient check failed at partial X. Problem at position: " + i);
                 }
@@ -267,7 +274,6 @@ public class WindowModel {
                     maskW.set(i, j, 0.0);
                     numericalPartialW.set(i, j, (cost1 - cost2)/(2.0 * epsilon));
                     
-                    // System.out.println(partialW.get(i,j) + ", " + numericalPartialW.get(i,j));
                     if (Math.abs(partialW.get(i,j) - numericalPartialW.get(i,j)) > maxAbs) {
                         System.out.println("Gradient check failed at partial W. Problem at position: " + i + ", " + j);
                         System.out.println(partialW.get(i,j) + ", " + numericalPartialW.get(i,j));
@@ -291,7 +297,6 @@ public class WindowModel {
                         maskW2.set(i, j, 0.0);
                         numericalPartialW2.set(i, j, (cost1 - cost2)/(2.0 * epsilon));
                         
-                        // System.out.println(partialW2.get(i,j) + ", " + numericalPartialW2.get(i,j));
                         if (Math.abs(partialW2.get(i,j) - numericalPartialW2.get(i,j)) > maxAbs) {
                             System.out.println("Gradient check failed at partial W2. Problem at position: " + i + ", " + j);
                             System.out.println(partialW2.get(i,j) + ", " + numericalPartialW2.get(i,j));
@@ -322,7 +327,6 @@ public class WindowModel {
                     maskU.set(i, j, 0.0);
                     numericalPartialU.set(i, j, (cost1 - cost2)/(2.0 * epsilon));
                     
-                    // System.out.println(partialU.get(i,j) + ", " + numericalPartialU.get(i,j));
                     if (Math.abs(partialU.get(i,j) - numericalPartialU.get(i,j)) > maxAbs) {
                         System.out.println("Gradient check failed at partial U. Problem at position: " + i + ", " + j);
                         System.out.println(partialU.get(i,j) + ", " + numericalPartialU.get(i,j));
@@ -346,6 +350,7 @@ public class WindowModel {
         } else {
             U = U.plus(elementWiseMultScalar(gradients.get(2), -learningRate));
         }
+
     }
 
     private SimpleMatrix removeConstRow(SimpleMatrix m){
@@ -355,7 +360,7 @@ public class WindowModel {
     private SimpleMatrix setConstColToZero(SimpleMatrix m){
         SimpleMatrix res = new SimpleMatrix(m.numRows(), m.numCols());
         for (int i=0; i<m.numRows(); i++){
-            res.set(i, m.numCols()-1, 0.1234);
+            res.set(i, m.numCols()-1, 0.0);
         }
         return res;
     }
@@ -391,7 +396,7 @@ public class WindowModel {
 	public void test(List<Datum> testData){
         previousPredictions = null;
         for (int datumIndex = 0; datumIndex < testData.size(); datumIndex++) {
-            // forward propagation
+            /* forward propagation */
             SimpleMatrix vectorX = generateWindow(testData, windowSize, datumIndex);
             SimpleMatrix vectorP = forwardProp(vectorX);
             double[] vector = vectorP.extractVector(false, 0).getMatrix().getData();
@@ -477,7 +482,7 @@ public class WindowModel {
             }
         }
 
-        // add the previous predictions
+        /* add the previous predictions */
         if (useSequenceModel) {
             for (int i = 0; i < additionalDim; i++) {
                 double val = 0.0;
@@ -489,7 +494,7 @@ public class WindowModel {
             }
         }
         
-        // add the constants for the bias
+        /* add the constants for the bias */
         vectorX.set(rowIndex, 0, 1.0);
         rowIndex++;
 
@@ -513,7 +518,7 @@ public class WindowModel {
 
     }
 
-    // add the vector of 1's for the bias
+    /* add the vector of 1's for the bias */
     private SimpleMatrix addConstRow(SimpleMatrix matrix) {
         int numRows = matrix.numRows();
         int numCols = matrix.numCols();
